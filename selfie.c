@@ -7030,9 +7030,12 @@ void printUsage() {
   println();
 }
 
+
+
 int selfie() {
   int* option;
-
+	print((int*) "This is Michael Noppinger's Selfie");
+	println();
   if (numberOfRemainingArguments() == 0)
     printUsage();
   else {
