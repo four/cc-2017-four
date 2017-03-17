@@ -1545,7 +1545,7 @@ int atoi(int* s) {
             //ASCII value of A is 65. So substracting 55 converts it to 10.
             c = (c + '0') - 55;
           }
-          // assert: s contains a binary number, that is, with base 2
+          // assert: s contains a hexa number, that is, with base 16
           n = n * 16 + c;
 
           // go to the next digit
@@ -1564,8 +1564,6 @@ int atoi(int* s) {
               return -1;
           }
         }
-        printInteger(n);
-        println();
       }
       //decimal mode
     }else{
