@@ -179,22 +179,22 @@ int* binary_buffer;    // buffer for binary I/O
 // WINDOWS: 32768 = 0x8000 = _O_BINARY (0x8000) | _O_RDONLY (0x0000)
 // since LINUX/MAC do not seem to mind about _O_BINARY set
 // we use the WINDOWS flags as default
-int O_RDONLY = 32768;
+int O_RDONLY = 0b1000000000000000;
 
 // flags for opening write-only files
 // MAC: 1537 = 0x0601 = O_CREAT (0x0200) | O_TRUNC (0x0400) | O_WRONLY (0x0001)
-int MAC_O_CREAT_TRUNC_WRONLY = 1537;
+int MAC_O_CREAT_TRUNC_WRONLY = 0x0601;
 
 // LINUX: 577 = 0x0241 = O_CREAT (0x0040) | O_TRUNC (0x0200) | O_WRONLY (0x0001)
-int LINUX_O_CREAT_TRUNC_WRONLY = 577;
+int LINUX_O_CREAT_TRUNC_WRONLY = 0x0241;
 
 // WINDOWS: 33537 = 0x8301 = _O_BINARY (0x8000) | _O_CREAT (0x0100) | _O_TRUNC (0x0200) | _O_WRONLY (0x0001)
-int WINDOWS_O_BINARY_CREAT_TRUNC_WRONLY = 33537;
+int WINDOWS_O_BINARY_CREAT_TRUNC_WRONLY = 0x8301;
 
 // flags for rw-r--r-- file permissions
 // 420 = 00644 = S_IRUSR (00400) | S_IWUSR (00200) | S_IRGRP (00040) | S_IROTH (00004)
 // these flags seem to be working for LINUX, MAC, and WINDOWS
-int S_IRUSR_IWUSR_IRGRP_IROTH = 420;
+int S_IRUSR_IWUSR_IRGRP_IROTH = 00644;
 
 // ------------------------ GLOBAL VARIABLES -----------------------
 
@@ -320,7 +320,8 @@ int SYM_STRING       = 27; // string
 int* SYMBOLS; // strings representing symbols
 
 int maxIdentifierLength = 64; // maximum number of characters in an identifier
-int maxIntegerLength    = 10; // maximum number of characters in an integer
+//TODO figure out if correct. Initial value was 12:
+int maxIntegerLength    = 32; // maximum number of characters in an integer
 int maxStringLength     = 128; // maximum number of characters in a string
 
 // ------------------------ GLOBAL VARIABLES -----------------------
@@ -702,27 +703,27 @@ void printFunction(int function);
 
 // ------------------------ GLOBAL CONSTANTS -----------------------
 
-int OP_SPECIAL = 0;
-int OP_J       = 2;
-int OP_JAL     = 3;
-int OP_BEQ     = 4;
-int OP_BNE     = 5;
-int OP_ADDIU   = 9;
-int OP_LW      = 35;
-int OP_SW      = 43;
+int OP_SPECIAL = 0x0;
+int OP_J       = 0x2;
+int OP_JAL     = 0x3;
+int OP_BEQ     = 0x4;
+int OP_BNE     = 0x5;
+int OP_ADDIU   = 0x9;
+int OP_LW      = 0x23;
+int OP_SW      = 0x2b;
 
 int* OPCODES; // strings representing MIPS opcodes
 
-int FCT_NOP     = 0;
-int FCT_JR      = 8;
-int FCT_SYSCALL = 12;
-int FCT_MFHI    = 16;
-int FCT_MFLO    = 18;
-int FCT_MULTU   = 25;
-int FCT_DIVU    = 27;
-int FCT_ADDU    = 33;
-int FCT_SUBU    = 35;
-int FCT_SLT     = 42;
+int FCT_NOP     = 0x0;
+int FCT_JR      = 0x8;
+int FCT_SYSCALL = 0xc;
+int FCT_MFHI    = 0x10;
+int FCT_MFLO    = 0x12;
+int FCT_MULTU   = 0x19;
+int FCT_DIVU    = 0x1b;
+int FCT_ADDU    = 0x21;
+int FCT_SUBU    = 0x23;
+int FCT_SLT     = 0x2a;
 
 int* FUNCTIONS; // strings representing MIPS functions
 
@@ -1423,41 +1424,187 @@ int atoi(int* s) {
 
   c = loadCharacter(s, i);
 
-  // loop until s is terminated
-  while (c != 0) {
-    // the numerical value of ASCII-encoded decimal digits
-    // is offset by the ASCII code of '0' (which is 48)
-    c = c - '0';
+  //check if string starts with zero
+  if(c == '0'){
+      n = 0;
 
-    if (c < 0)
-      // c was not a decimal digit
-      return -1;
-    else if (c > 9)
-      // c was not a decimal digit
-      return -1;
+      //go to the next digit or b, 0 or x
+      //for binary, octal or hexa numbers
+      i = i + 1;
+      c = loadCharacter(s, i);
 
-    // assert: s contains a decimal number, that is, with base 10
-    n = n * 10 + c;
+      //recognize binary numbers
+      if(c == 'b'){
+        //go to the next digit
+        i = i + 1;
+        c = loadCharacter(s, i);
 
-    // go to the next digit
-    i = i + 1;
+        // loop until s is terminated (0 terminates the string!)
+        while(c != 0){
+          c = c - '0';
 
-    c = loadCharacter(s, i);
+          if (c < 0)
+            // c was not a binary digit
+            return -1;
+          else if (c > 1)
+            // c was not a binary digit
+            return -1;
 
-    if (n < 0) {
-      // the only negative number for n allowed here is INT_MIN
-      if (n != INT_MIN)
-        // but n is not INT_MIN which may happen because of an earlier
-        // integer overflow if the number in s is larger than INT_MAX
-        return -1;
-      else if (c != 0)
-        // n is INT_MIN but s is not terminated yet
-        return -1;
+          // assert: s contains a binary number, that is, with base 2
+          n = n * 2 + c;
+
+          // go to the next digit
+          i = i + 1;
+
+          c = loadCharacter(s, i);
+
+          if (n < 0) {
+            // the only negative number for n allowed here is INT_MIN
+            if (n != INT_MIN)
+              // but n is not INT_MIN which may happen because of an earlier
+              // integer overflow if the number in s is larger than INT_MAX
+              return -1;
+            else if (c != 0)
+              // n is INT_MIN but s is not terminated yet
+              return -1;
+
+        }
+      }
     }
-  }
+    //octal mode
+    else if(c == '0'){
+      //go to the next digit
+      i = i + 1;
+      c = loadCharacter(s, i);
 
+        // loop until s is terminated (0 terminates the string!)
+        while(c != 0){
+          c = c - '0';
+
+          if (c < 0)
+            // c was not an octal digit
+            return -1;
+          else if (c > 7)
+            // c was not an octal digit
+            return -1;
+
+          // assert: s contains a binary number, that is, with base 2
+          n = n * 8 + c;
+
+          // go to the next digit
+          i = i + 1;
+
+          c = loadCharacter(s, i);
+
+          if (n < 0) {
+            // the only negative number for n allowed here is INT_MIN
+            if (n != INT_MIN)
+              // but n is not INT_MIN which may happen because of an earlier
+              // integer overflow if the number in s is larger than INT_MAX
+              return -1;
+            else if (c != 0)
+              // n is INT_MIN but s is not terminated yet
+              return -1;
+
+          }
+        }
+    }
+    //hexa mode
+      else if(c == 'x'){
+        //go to the next digit
+        i = i + 1;
+        c = loadCharacter(s, i);
+
+        // loop until s is terminated (0 terminates the string!)
+        while(c != 0){
+          c = c - '0';
+
+          if (c < 0){
+            // c was not a decimal
+            return -1;
+          } else if (c > 9){
+            //c was not a decimal
+            //always add '0' in the following statements to respect the  -'0' above
+            if((c + '0') < 'A'){
+              //check if c is A ... F or a ... f
+              return -1;
+            }else if((c + '0') > 'F'){
+              if((c + '0') < 'a')
+                return -1;
+              if(c > 'f')
+                return -1;
+            }
+          }
+          //convert lowercase HEXA letters to numbers
+          if((c + '0') >= 'a'){
+              //so a becomes 10, b becomes 11 ...
+              //ASCII value of a is 97. So substracting 87 converts it to 10.
+              c = (c + '0') - 87;
+          //convert uppercase HEXA letters to numbers
+        } else if ((c + '0') >= 'A'){
+            //ASCII value of A is 65. So substracting 55 converts it to 10.
+            c = (c + '0') - 55;
+          }
+          // assert: s contains a binary number, that is, with base 2
+          n = n * 16 + c;
+
+          // go to the next digit
+          i = i + 1;
+
+          c = loadCharacter(s, i);
+
+          if (n < 0) {
+            // the only negative number for n allowed here is INT_MIN
+            if (n != INT_MIN)
+              // but n is not INT_MIN which may happen because of an earlier
+              // integer overflow if the number in s is larger than INT_MAX
+              return -1;
+            else if (c != 0)
+              // n is INT_MIN but s is not terminated yet
+              return -1;
+          }
+        }
+        printInteger(n);
+        println();
+      }
+      //decimal mode
+    }else{
+      // loop until s is terminated (0 terminates the string!)
+      while (c != 0) {
+        // the numerical value of ASCII-encoded decimal digits
+        // is offset by the ASCII code of '0' (which is 48)
+        c = c - '0';
+
+        if (c < 0)
+          // c was not a decimal digit
+          return -1;
+        else if (c > 9)
+          // c was not a decimal digit
+          return -1;
+
+        // assert: s contains a decimal number, that is, with base 10
+        n = n * 10 + c;
+
+        // go to the next digit
+        i = i + 1;
+
+        c = loadCharacter(s, i);
+
+        if (n < 0) {
+          // the only negative number for n allowed here is INT_MIN
+          if (n != INT_MIN)
+            // but n is not INT_MIN which may happen because of an earlier
+            // integer overflow if the number in s is larger than INT_MAX
+            return -1;
+          else if (c != 0)
+            // n is INT_MIN but s is not terminated yet
+            return -1;
+        }
+      }
+  }
   return n;
 }
+
 
 int* itoa(int n, int* s, int b, int a, int p) {
   // assert: b in {2,4,8,10,16}
@@ -2024,10 +2171,14 @@ void getSymbol() {
         integer = malloc(maxIntegerLength + 1);
 
         i = 0;
+        //Implement error handling.
+        //There is not any letter allowed.
+        //TODO
 
-        while (isCharacterDigit()) {
+        //Underscores or letters that are not allowed are caught in atoi.
+        while (isCharacterLetterOrDigitOrUnderscore()) {
           if (i >= maxIntegerLength) {
-            syntaxErrorMessage((int*) "integer out of bound");
+            syntaxErrorMessage((int*) "integer out of bound 1");
 
             exit(-1);
           }
@@ -2048,12 +2199,12 @@ void getSymbol() {
             if (mayBeINTMIN)
               isINTMIN = 1;
             else {
-              syntaxErrorMessage((int*) "integer out of bound");
+              syntaxErrorMessage((int*) "integer out of bound 2");
 
               exit(-1);
             }
           } else {
-            syntaxErrorMessage((int*) "integer out of bound");
+            syntaxErrorMessage((int*) "integer out of bound 3");
 
             exit(-1);
           }
@@ -7034,10 +7185,10 @@ void printUsage() {
 
 int selfie() {
   int* option;
-  
+
 	print((int*) "This is Michael Noppinger's Selfie");
 	println();
-	
+
   if (numberOfRemainingArguments() == 0)
     printUsage();
   else {
