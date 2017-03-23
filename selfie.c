@@ -758,8 +758,8 @@ void initDecoder() {
 
   *(FUNCTIONS + FCT_NOP)     = (int) "nop";
   *(FUNCTIONS + FCT_SRL)     = (int) "srl";
-  *(FUNCTIONS + FCT_SLLV)     = (int) "sllv";
-  *(FUNCTIONS + FCT_SRLV)     = (int) "srlv";
+  *(FUNCTIONS + FCT_SLLV)    = (int) "sllv";
+  *(FUNCTIONS + FCT_SRLV)    = (int) "srlv";
   *(FUNCTIONS + FCT_JR)      = (int) "jr";
   *(FUNCTIONS + FCT_SYSCALL) = (int) "syscall";
   *(FUNCTIONS + FCT_MFHI)    = (int) "mfhi";
@@ -971,6 +971,9 @@ void initMemory(int megabytes) {
 // -----------------------------------------------------------------
 
 void fct_nop();
+void fct_srl();
+void fct_sllv();
+void fct_srlv();
 void fct_addu();
 void fct_subu();
 void fct_multu();
