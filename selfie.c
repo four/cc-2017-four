@@ -4305,16 +4305,17 @@ void printRegister(int reg) {
 // 32 bit
 //
 // +------+-----+-----+-----+-----+------+
-// |opcode| rs  | rt  | rd  |00000|fction|
+// |opcode| rs  | rt  | rd  |shamt|fction|
 // +------+-----+-----+-----+-----+------+
 //    6      5     5     5     5     6
-int encodeRFormat(int opcode, int rs, int rt, int rd, int function) {
+int encodeRFormat(int opcode, int rs, int rt, int rd, int shamt, int function) {
   // assert: 0 <= opcode < 2^6
   // assert: 0 <= rs < 2^5
   // assert: 0 <= rt < 2^5
   // assert: 0 <= rd < 2^5
+  // assert: 0 <= shamt 2^5
   // assert: 0 <= function < 2^6
-  return leftShift(leftShift(leftShift(leftShift(opcode, 5) + rs, 5) + rt, 5) + rd, 11) + function;
+  return leftShift(leftShift(leftShift(leftShift(leftShift(opcode, 5) + rs, 5) + rt, 5) + rd, 5) + shamt, 6) + function;
 }
 
 // -----------------------------------------------------------------
