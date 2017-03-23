@@ -736,6 +736,7 @@ int opcode      = 0;
 int rs          = 0;
 int rt          = 0;
 int rd          = 0;
+int shamt       = 0;
 int immediate   = 0;
 int function    = 0;
 int instr_index = 0;
@@ -5661,6 +5662,50 @@ void fct_nop() {
 
   if (interpret)
     pc = pc + WORDSIZE;
+}
+
+void fct_srl() {
+  if (debug) {
+    printFunction(function);
+    print((int*) " ");
+    printRegister(rd);
+    print((int*) ",");
+    printRegister(rs);
+    print((int*) ",");
+    printRegister(rt);
+    print((int*) ",");
+    printRegister(shamt);
+    if (interpret) {
+      print((int*) ": ");
+      printRegister(rd);
+      print((int*) "=");
+      printInteger(*(registers+rd));
+      print((int*) ",");
+      printRegister(rs);
+      print((int*) "=");
+      printInteger(*(registers+rs));
+      print((int*) ",");
+      printRegister(rt);
+      print((int*) "=");
+      printInteger(*(registers+rt));
+    }
+  }
+
+  if (interpret) {
+    *(registers+rd) = *(registers+rs) + *(registers+rt);
+
+    pc = pc + WORDSIZE;
+  }
+
+  if (debug) {
+    if (interpret) {
+      print((int*) " -> ");
+      printRegister(rd);
+      print((int*) "=");
+      printInteger(*(registers+rd));
+    }
+    println();
+  }
 }
 
 void fct_addu() {
