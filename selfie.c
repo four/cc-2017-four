@@ -716,7 +716,7 @@ int* OPCODES; // strings representing MIPS opcodes
 
 int FCT_NOP     = 0x00;
 int FCT_SRL     = 0x02;
-int FCT_NOPV    = 0x04;
+int FCT_SLLV    = 0x04;
 int FCT_SRLV    = 0x06;
 int FCT_JR      = 0x08;
 int FCT_SYSCALL = 0x0c;
@@ -757,6 +757,9 @@ void initDecoder() {
   FUNCTIONS = malloc(43 * SIZEOFINTSTAR);
 
   *(FUNCTIONS + FCT_NOP)     = (int) "nop";
+  *(FUNCTIONS + FCT_SRL)     = (int) "srl";
+  *(FUNCTIONS + FCT_SLLV)     = (int) "sllv";
+  *(FUNCTIONS + FCT_SRLV)     = (int) "srlv";
   *(FUNCTIONS + FCT_JR)      = (int) "jr";
   *(FUNCTIONS + FCT_SYSCALL) = (int) "syscall";
   *(FUNCTIONS + FCT_MFHI)    = (int) "mfhi";
