@@ -4370,6 +4370,10 @@ int getRD(int instruction) {
   return rightShift(leftShift(instruction, 16), 27);
 }
 
+int getShamt(int instruction){
+  return rightShift(leftShift(instruction, 21), 27);
+}
+
 int getFunction(int instruction) {
   return rightShift(leftShift(instruction, 26), 26);
 }
@@ -4394,14 +4398,14 @@ int signExtend(int immediate) {
 // 32 bit
 //
 // +------+-----+-----+-----+-----+------+
-// |opcode| rs  | rt  | rd  |00000|fction|
+// |opcode| rs  | rt  | rd  |shamt|fction|
 // +------+-----+-----+-----+-----+------+
 //    6      5     5     5     5     6
 void decodeRFormat() {
   rs          = getRS(ir);
   rt          = getRT(ir);
   rd          = getRD(ir);
-  immediate   = 0;
+  shamt       = getShamt(ir);
   function    = getFunction(ir);
   instr_index = 0;
 }
