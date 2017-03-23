@@ -703,20 +703,23 @@ void printFunction(int function);
 
 // ------------------------ GLOBAL CONSTANTS -----------------------
 
-int OP_SPECIAL = 0x0;
-int OP_J       = 0x2;
-int OP_JAL     = 0x3;
-int OP_BEQ     = 0x4;
-int OP_BNE     = 0x5;
-int OP_ADDIU   = 0x9;
+int OP_SPECIAL = 0x00;
+int OP_J       = 0x02;
+int OP_JAL     = 0x03;
+int OP_BEQ     = 0x04;
+int OP_BNE     = 0x05;
+int OP_ADDIU   = 0x09;
 int OP_LW      = 0x23;
 int OP_SW      = 0x2b;
 
 int* OPCODES; // strings representing MIPS opcodes
 
-int FCT_NOP     = 0x0;
-int FCT_JR      = 0x8;
-int FCT_SYSCALL = 0xc;
+int FCT_NOP     = 0x00;
+int FCT_SRL     = 0x02;
+int FCT_NOPV    = 0x04;
+int FCT_SRLV    = 0x06;
+int FCT_JR      = 0x08;
+int FCT_SYSCALL = 0x0c;
 int FCT_MFHI    = 0x10;
 int FCT_MFLO    = 0x12;
 int FCT_MULTU   = 0x19;
