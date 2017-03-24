@@ -673,7 +673,7 @@ void initRegister() {
 // ---------------------------- ENCODER ----------------------------
 // -----------------------------------------------------------------
 
-int encodeRFormat(int opcode, int rs, int rt, int rd, int function);
+int encodeRFormat(int opcode, int rs, int rt, int rd, int shamt, int function);
 int encodeIFormat(int opcode, int rs, int rt, int immediate);
 int encodeJFormat(int opcode, int instr_index);
 
@@ -780,7 +780,7 @@ int  loadBinary(int baddr);
 void storeBinary(int baddr, int instruction);
 
 void emitInstruction(int instruction);
-void emitRFormat(int opcode, int rs, int rt, int rd, int function);
+void emitRFormat(int opcode, int rs, int rt, int rd, int shamt, int function);
 void emitIFormat(int opcode, int rs, int rt, int immediate);
 void emitJFormat(int opcode, int instr_index);
 
@@ -5688,11 +5688,114 @@ void fct_srl() {
       printRegister(rt);
       print((int*) "=");
       printInteger(*(registers+rt));
+      print((int*) ": ");
+      printRegister(shamt);
+      print((int*) "=");
+      printInteger(*(registers+shamt));
     }
   }
 
   if (interpret) {
-    *(registers+rd) = *(registers+rs) + *(registers+rt);
+
+    *(registers+rd) = rightShift(*(registers+rt),*(registers+shamt));
+
+    pc = pc + WORDSIZE;
+  }
+
+  if (debug) {
+    if (interpret) {
+      print((int*) " -> ");
+      printRegister(rd);
+      print((int*) "=");
+      printInteger(*(registers+rd));
+    }
+    println();
+  }
+}
+
+void fct_sllv() {
+  if (debug) {
+    printFunction(function);
+    print((int*) " ");
+    printRegister(rd);
+    print((int*) ",");
+    printRegister(rs);
+    print((int*) ",");
+    printRegister(rt);
+    print((int*) ",");
+    printRegister(shamt);
+    if (interpret) {
+      print((int*) ": ");
+      printRegister(rd);
+      print((int*) "=");
+      printInteger(*(registers+rd));
+      print((int*) ",");
+      printRegister(rs);
+      print((int*) "=");
+      printInteger(*(registers+rs));
+      print((int*) ",");
+      printRegister(rt);
+      print((int*) "=");
+      printInteger(*(registers+rt));
+      print((int*) ": ");
+      printRegister(shamt);
+      print((int*) "=");
+      printInteger(*(registers+shamt));
+    }
+  }
+
+  if (interpret) {
+
+    *(registers+rd) = leftShift(*(registers+rt),*(registers+rs));
+
+    pc = pc + WORDSIZE;
+  }
+
+  if (debug) {
+    if (interpret) {
+      print((int*) " -> ");
+      printRegister(rd);
+      print((int*) "=");
+      printInteger(*(registers+rd));
+    }
+    println();
+  }
+
+}
+void fct_srlv() {
+  if (debug) {
+    printFunction(function);
+    print((int*) " ");
+    printRegister(rd);
+    print((int*) ",");
+    printRegister(rs);
+    print((int*) ",");
+    printRegister(rt);
+    print((int*) ",");
+    printRegister(shamt);
+    if (interpret) {
+      print((int*) ": ");
+      printRegister(rd);
+      print((int*) "=");
+      printInteger(*(registers+rd));
+      print((int*) ",");
+      printRegister(rs);
+      print((int*) "=");
+      printInteger(*(registers+rs));
+      print((int*) ",");
+      printRegister(rt);
+      print((int*) "=");
+      printInteger(*(registers+rt));
+      print((int*) ": ");
+      printRegister(shamt);
+      print((int*) "=");
+      printInteger(*(registers+shamt));
+    }
+  }
+
+  if (interpret) {
+
+    *(registers+rd) = leftShift(*(registers+rt),*(registers+shamt));
 
     pc = pc + WORDSIZE;
   }
