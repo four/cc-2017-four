@@ -5655,17 +5655,18 @@ void mapAndStoreVirtualMemory(int* table, int vaddr, int data) {
 // ------------------------- INSTRUCTIONS --------------------------
 // -----------------------------------------------------------------
 
-//void fct_nop() {
-//  if (debug) {
-//    printFunction(function);
-//    println();
-//  }
-//
-//   if (interpret)
-//     pc = pc + WORDSIZE;
-// }
-
 void fct_nop() {
+ if (debug) {
+   //printFunction(function);
+   print((int*) "nop");
+   println();
+ }
+
+  if (interpret)
+    pc = pc + WORDSIZE;
+}
+
+void fct_sll() {
   if (debug) {
     printFunction(function);
     print((int*) " ");
@@ -6593,6 +6594,7 @@ void execute() {
     print((int*) ": ");
   }
 //TODOMINO
+
   if (opcode == OP_SPECIAL) {
     if (ir == 0)
       fct_nop();
