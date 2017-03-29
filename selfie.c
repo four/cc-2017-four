@@ -758,6 +758,7 @@ void initDecoder() {
   FUNCTIONS = malloc(43 * SIZEOFINTSTAR);
 
   *(FUNCTIONS + FCT_NOP)     = (int) "nop";
+
   *(FUNCTIONS + FCT_SRL)     = (int) "srl";
   *(FUNCTIONS + FCT_SLLV)    = (int) "sllv";
   *(FUNCTIONS + FCT_SRLV)    = (int) "srlv";
@@ -5697,7 +5698,7 @@ void fct_nop() {
 
   if (interpret) {
 
-    *(registers+rd) = leftShift(*(registers+rt),*(registers+shamt));
+    *(registers+rd) = leftShift(*(registers+rt),shamt);
 
     pc = pc + WORDSIZE;
   }
@@ -5844,7 +5845,7 @@ void fct_srlv() {
 
   if (interpret) {
 
-    *(registers+rd) = leftShift(*(registers+rt),*(registers+shamt));
+    *(registers+rd) = leftShift(*(registers+rt),shamt);
 
     pc = pc + WORDSIZE;
   }
@@ -6591,10 +6592,18 @@ void execute() {
     printHexadecimal(ir, 8);
     print((int*) ": ");
   }
-
+//TODOMINO
   if (opcode == OP_SPECIAL) {
-    if (function == FCT_NOP)
+    if (ir == 0)
       fct_nop();
+    else if (function == FCT_SLL)
+      fct_nop();
+    else if (function == FCT_SLLV)
+      fct_sllv();
+    else if (function == FCT_SRL)
+      fct_srl();
+    else if (function == FCT_SRLV)
+      fct_srlv();
     else if (function == FCT_ADDU)
       fct_addu();
     else if (function == FCT_SUBU)
