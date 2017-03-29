@@ -5654,14 +5654,63 @@ void mapAndStoreVirtualMemory(int* table, int vaddr, int data) {
 // ------------------------- INSTRUCTIONS --------------------------
 // -----------------------------------------------------------------
 
+//void fct_nop() {
+//  if (debug) {
+//    printFunction(function);
+//    println();
+//  }
+//
+//   if (interpret)
+//     pc = pc + WORDSIZE;
+// }
+
 void fct_nop() {
   if (debug) {
     printFunction(function);
-    println();
+    print((int*) " ");
+    printRegister(rd);
+    print((int*) ",");
+    printRegister(rs);
+    print((int*) ",");
+    printRegister(rt);
+    print((int*) ",");
+    printRegister(shamt);
+    if (interpret) {
+      print((int*) ": ");
+      printRegister(rd);
+      print((int*) "=");
+      printInteger(*(registers+rd));
+      print((int*) ",");
+      printRegister(rs);
+      print((int*) "=");
+      printInteger(*(registers+rs));
+      print((int*) ",");
+      printRegister(rt);
+      print((int*) "=");
+      printInteger(*(registers+rt));
+      print((int*) ": ");
+      printRegister(shamt);
+      print((int*) "=");
+      printInteger(*(registers+shamt));
+    }
   }
 
-  if (interpret)
+  if (interpret) {
+
+    *(registers+rd) = leftShift(*(registers+rt),*(registers+shamt));
+
     pc = pc + WORDSIZE;
+  }
+
+  if (debug) {
+    if (interpret) {
+      print((int*) " -> ");
+      printRegister(rd);
+      print((int*) "=");
+      printInteger(*(registers+rd));
+    }
+    println();
+  }
 }
 
 void fct_srl() {
