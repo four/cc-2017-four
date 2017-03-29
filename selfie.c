@@ -715,6 +715,7 @@ int OP_SW      = 0x2b;
 int* OPCODES; // strings representing MIPS opcodes
 
 int FCT_NOP     = 0x00;
+int FCT_SLL     = 0x00;
 int FCT_SRL     = 0x02;
 int FCT_SLLV    = 0x04;
 int FCT_SRLV    = 0x06;
