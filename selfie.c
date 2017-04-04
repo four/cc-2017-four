@@ -2349,10 +2349,11 @@ void getSymbol() {
           getCharacter();
 
           symbol = SYM_LEQ;
-        } else if (charaacter == CHAR_LT){
+
+        } else if (character == CHAR_LT){
           getCharacter();
 
-          symbol == SYM_LSHIFT;
+          symbol = SYM_LSHIFT;
         } else
           symbol = SYM_LT;
 
