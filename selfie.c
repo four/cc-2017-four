@@ -385,6 +385,8 @@ void initScanner () {
   *(SYMBOLS + SYM_MOD)          = (int) "%";
   *(SYMBOLS + SYM_CHARACTER)    = (int) "character";
   *(SYMBOLS + SYM_STRING)       = (int) "string";
+  *(SYMBOLS + SYM_LSHIFT)       = (int) "<<";
+  *(SYMBOLS + SYM_RSHIFT)       = (int) ">>";
 
   character = CHAR_EOF;
   symbol    = SYM_EOF;
@@ -2347,6 +2349,10 @@ void getSymbol() {
           getCharacter();
 
           symbol = SYM_LEQ;
+        } else if (charaacter == CHAR_LT){
+          getCharacter();
+
+          symbol == SYM_LSHIFT;
         } else
           symbol = SYM_LT;
 
@@ -2357,6 +2363,10 @@ void getSymbol() {
           getCharacter();
 
           symbol = SYM_GEQ;
+        } else if (character == CHAR_GT) {
+          getCharacter();
+
+          symbol = SYM_RSHIFT;
         } else
           symbol = SYM_GT;
 
