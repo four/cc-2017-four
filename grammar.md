@@ -8,6 +8,18 @@ This is the grammar of the C Star (C\*) programming language.
 
 C\* is a small Turing-complete subset of C that includes dereferencing (the `*` operator) but excludes data structures, bitwise and Boolean operators, and many other features. C\* is supposed to be close to the minimum necessary for implementing a self-compiling, single-pass, recursive-descent compiler.
 
+EBNF:
+
+Verwendung	Zeichen
+Definition	            =
+Endezeichen	            .
+Alternative	            |
+Option	                [ … ]
+Optionale Wiederholung	{ … }
+Gruppierung	            ( … )
+Anführungszeichen       " … "
+
+
 C\* Keywords: `int`, `while`, `if`, `else`, `return`, `void`
 
 C\* Symbols: `=`, `+`, `-`, `*`, `/`, `%`, `==`, `!=`, `<`, `<=`, `>`, `>=`, `,`, `(`, `)`, `{`, `}`, `;`, integer, identifier, character, string
@@ -56,6 +68,8 @@ statement        = call ";" | while | if | return ";" |
 call             = identifier "(" [ expression { "," expression } ] ")" .
 
 expression       = simpleExpression [ ( "==" | "!=" | "<" | ">" | "<=" | ">=" ) simpleExpression ] .
+
+shiftExpression  = simpleExpression
 
 simpleExpression = [ "-" ] term { ( "+" | "-" ) term } .
 
