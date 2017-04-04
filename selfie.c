@@ -316,6 +316,8 @@ int SYM_NOTEQ        = 24; // !=
 int SYM_MOD          = 25; // %
 int SYM_CHARACTER    = 26; // character
 int SYM_STRING       = 27; // string
+int SYM_LSHIFT       = 28; // <<
+int SYM_RSHIFT       = 29; // >>
 
 int* SYMBOLS; // strings representing symbols
 
