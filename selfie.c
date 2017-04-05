@@ -1363,7 +1363,7 @@ int loadCharacter(int* s, int i) {
 
   // shift to-be-loaded character to the left resetting all bits to the left
   // then shift to-be-loaded character all the way to the right and return
-  return rightShift(leftShift(*(s + a), ((SIZEOFINT - 1) - (i % SIZEOFINT)) * 8), (SIZEOFINT - 1) * 8);
+  return rightShift((*(s + a) << ((SIZEOFINT - 1) - (i % SIZEOFINT)) * 8), (SIZEOFINT - 1) * 8);
 }
 
 int* storeCharacter(int* s, int i, int c) {
@@ -1376,7 +1376,7 @@ int* storeCharacter(int* s, int i, int c) {
 
   // subtract the to-be-overwritten character resetting its bits in s
   // then add c setting its bits at the i-th position in s
-  *(s + a) = (*(s + a) - leftShift(loadCharacter(s, i), (i % SIZEOFINT) * 8)) + leftShift(c, (i % SIZEOFINT) * 8);
+  *(s + a) = (*(s + a) - (loadCharacter(s, i) << (i % SIZEOFINT) * 8)) + (c << (i % SIZEOFINT) * 8);
 
   return s;
 }
@@ -1668,7 +1668,7 @@ int* itoa(int n, int* s, int b, int a, int p) {
         i = 1;
       } else {
         // reset msb, restore below
-        n   = rightShift(leftShift(n, 1), 1);
+        n   = rightShift((n << 1), 1);
         msb = 1;
       }
     }
@@ -4394,7 +4394,7 @@ int encodeIFormat(int opcode, int rs, int rt, int immediate) {
     // convert from 32-bit to 16-bit two's complement
     immediate = immediate + twoToThePowerOf(16);
 
-  return leftShift(leftShift(leftShift(opcode, 5) + rs, 5) + rt, 16) + immediate;
+  return (((opcode << 5) + rs << 5) + rt << 16) + immediate;
 }
 
 // --------------------------------------------------------------
@@ -4407,7 +4407,7 @@ int encodeIFormat(int opcode, int rs, int rt, int immediate) {
 int encodeJFormat(int opcode, int instr_index) {
   // assert: 0 <= opcode < 2^6
   // assert: 0 <= instr_index < 2^26
-  return leftShift(opcode, 26) + instr_index;
+  return (opcode << 26) + instr_index;
 }
 
 // -----------------------------------------------------------------
@@ -4419,31 +4419,31 @@ int getOpcode(int instruction) {
 }
 
 int getRS(int instruction) {
-  return rightShift(leftShift(instruction, 6), 27);
+  return rightShift((instruction << 6), 27);
 }
 
 int getRT(int instruction) {
-  return rightShift(leftShift(instruction, 11), 27);
+  return rightShift((instruction << 11), 27);
 }
 
 int getRD(int instruction) {
-  return rightShift(leftShift(instruction, 16), 27);
+  return rightShift((instruction << 16), 27);
 }
 
 int getShamt(int instruction){
-  return rightShift(leftShift(instruction, 21), 27);
+  return rightShift((instruction, 21), 27);
 }
 
 int getFunction(int instruction) {
-  return rightShift(leftShift(instruction, 26), 26);
+  return rightShift((instruction << 26), 26);
 }
 
 int getImmediate(int instruction) {
-  return rightShift(leftShift(instruction, 16), 16);
+  return rightShift((instruction << 16), 16);
 }
 
 int getInstrIndex(int instruction) {
-  return rightShift(leftShift(instruction, 6), 6);
+  return rightShift((instruction << 6), 6);
 }
 
 int signExtend(int immediate) {
@@ -5757,7 +5757,7 @@ void fct_sll() {
 
   if (interpret) {
 
-    *(registers+rd) = leftShift(*(registers+rt),shamt);
+    *(registers+rd) = (*(registers+rt) << shamt);
 
     pc = pc + WORDSIZE;
   }
@@ -5855,7 +5855,7 @@ void fct_sllv() {
 
   if (interpret) {
 
-    *(registers+rd) = leftShift(*(registers+rt),*(registers+rs));
+    *(registers+rd) = (*(registers+rt) << *(registers+rs));
 
     pc = pc + WORDSIZE;
   }
@@ -5904,7 +5904,7 @@ void fct_srlv() {
 
   if (interpret) {
 
-    *(registers+rd) = leftShift(*(registers+rt),shamt);
+    *(registers+rd) = (*(registers+rt) << shamt);
 
     pc = pc + WORDSIZE;
   }
@@ -6583,7 +6583,7 @@ int encodeException(int exception, int parameter) {
     // convert from 32-bit to 16-bit two's complement
     parameter = parameter + twoToThePowerOf(16);
 
-  return leftShift(exception, 16) + parameter;
+  return (exception << 16) + parameter;
 }
 
 int decodeExceptionNumber(int status) {
@@ -6591,7 +6591,7 @@ int decodeExceptionNumber(int status) {
 }
 
 int decodeExceptionParameter(int status) {
-  return signExtend(rightShift(leftShift(status, 16), 16));
+  return signExtend(rightShift((status << 16), 16));
 }
 
 void printStatus(int status) {
