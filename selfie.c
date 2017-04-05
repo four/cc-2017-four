@@ -1336,7 +1336,7 @@ int rightShift(int n, int b) {
   if (n >= 0) {
     if (b < 31)
       // right shift of positive integers works by division with powers of two
-      return n / twoToThePowerOf(b);
+      return n >> b;
     else
       // right shift of a 32-bit integer by more than 31 bits is always 0
       return 0;
@@ -1344,8 +1344,8 @@ int rightShift(int n, int b) {
     // right shift of negative integers requires resetting the sign bit first,
     // then dividing with powers of two, and finally restoring the sign bit
     // but b bits to the right; this works even if n == INT_MIN
-    return ((n + 1) + INT_MAX) >> b) +
-      (INT_MAX >> b) + 1);
+    return (((n + 1) + INT_MAX) >> b) +
+      ((INT_MAX >> b) + 1);
   else if (b == 31)
     // right shift of a negative 32-bit integer by 31 bits is 1 (the sign bit)
     return 1;
@@ -5904,7 +5904,7 @@ void fct_srlv() {
 
   if (interpret) {
 
-    *(registers+rd) = (*(registers+rt) << shamt);
+    *(registers+rd) = rightShift(*(registers+rt), *(registers+rs));
 
     pc = pc + WORDSIZE;
   }
