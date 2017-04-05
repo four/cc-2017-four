@@ -502,6 +502,7 @@ int isLiteral();
 int isStarOrDivOrModulo();
 int isPlusOrMinus();
 int isComparison();
+int isShift();
 
 int lookForFactor();
 int lookForStatement();
@@ -528,6 +529,7 @@ int  gr_call(int* procedure);
 int  gr_factor();
 int  gr_term();
 int  gr_simpleExpression();
+int  gr_shiftExpression();
 int  gr_expression();
 void gr_while();
 void gr_if();
@@ -2597,6 +2599,15 @@ int isComparison() {
     return 0;
 }
 
+int isShift() {
+  if (symbol == SYM_LSHIFT)
+    return 1;
+  else if (symbol == SYM_RSHIFT)
+    return 1;
+  else
+    return 0;
+}
+
 int lookForFactor() {
   if (symbol == SYM_LPARENTHESIS)
     return 0;
@@ -2810,7 +2821,7 @@ void load_integer(int value) {
       emitLeftShiftBy(14);
 
       // and finally add 14 lsbs
-      emitIFormat(OP_ADDIU, currentTemporary(), currentTemporary(), rightShift(leftShift(value, 18), 18));
+      emitIFormat(OP_ADDIU, currentTemporary(), currentTemporary(), rightShift(value << 18, 18));
     } else {
       // load 14 msbs of a 31-bit number first
       emitIFormat(OP_ADDIU, REG_ZR, currentTemporary(), rightShift(value, 17));
@@ -2818,12 +2829,12 @@ void load_integer(int value) {
       emitLeftShiftBy(14);
 
       // then add the next 14 msbs
-      emitIFormat(OP_ADDIU, currentTemporary(), currentTemporary(), rightShift(leftShift(value, 15), 18));
+      emitIFormat(OP_ADDIU, currentTemporary(), currentTemporary(), rightShift(value << 15, 18));
 
       emitLeftShiftBy(3);
 
       // and finally add the remaining 3 lsbs
-      emitIFormat(OP_ADDIU, currentTemporary(), currentTemporary(), rightShift(leftShift(value, 29), 29));
+      emitIFormat(OP_ADDIU, currentTemporary(), currentTemporary(), rightShift(value << 29, 29));
     }
   } else {
     // load largest positive 16-bit number with a single bit set: 2^14
@@ -3270,6 +3281,39 @@ int gr_simpleExpression() {
   return ltype;
 }
 
+int gr_shiftExpression(){
+  int ltype;
+  int operatorSymbol;
+  int rtype;
+
+  // assert: n = allocatedTemporaries
+
+
+  ltype = gr_simpleExpression();
+
+  // assert: allocatedTemporaries == n + 1
+
+
+  // << or >>?
+  while(isShift()) {
+    operatorSymbol = symbol;
+
+    getSymbol();
+
+    rtype = gr_simpleExpression();
+
+    if (operatorSymbol == SYM_LSHIFT){
+      emitRFormat(OP_SPECIAL, currentTemporary(), previousTemporary(), previousTemporary(), 0, FCT_SLLV);
+      tfree(1);
+    } else if (operatorSymbol == SYM_RSHIFT){
+      emitRFormat(OP_SPECIAL, currentTemporary(), previousTemporary(), previousTemporary(), 0, FCT_SRLV);
+      tfree(1);
+    }
+  }
+
+  return ltype;
+}
+
 int gr_expression() {
   int ltype;
   int operatorSymbol;
@@ -3277,7 +3321,7 @@ int gr_expression() {
 
   // assert: n = allocatedTemporaries
 
-  ltype = gr_simpleExpression();
+  ltype = gr_shiftExpression();
 
   // assert: allocatedTemporaries == n + 1
 
@@ -3287,7 +3331,7 @@ int gr_expression() {
 
     getSymbol();
 
-    rtype = gr_simpleExpression();
+    rtype = gr_shiftExpression();
 
     // assert: allocatedTemporaries == n + 2
 
@@ -4331,7 +4375,7 @@ int encodeRFormat(int opcode, int rs, int rt, int rd, int shamt, int function) {
   // assert: 0 <= rd < 2^5
   // assert: 0 <= shamt 2^5
   // assert: 0 <= function < 2^6
-  return leftShift(leftShift(leftShift(leftShift(leftShift(opcode, 5) + rs, 5) + rt, 5) + rd, 5) + shamt, 6) + function;
+  return (((((opcode << 5) + rs << 5) + rt << 5) + rd << 5) + shamt << 6) + function;
 }
 
 // -----------------------------------------------------------------
@@ -7419,9 +7463,18 @@ void printUsage() {
 
 int selfie() {
   int* option;
+  int number;
 
 	print((int*) "This is Michael Noppinger's Selfie");
 	println();
+
+  //number = leftShift(leftShift(50,2),2);
+  number = 50 << 2 << 2;
+
+  printInteger(number);
+  println();
+
+
 
   if (numberOfRemainingArguments() == 0)
     printUsage();
