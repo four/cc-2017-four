@@ -7463,7 +7463,6 @@ void printUsage() {
 
 int selfie() {
   int* option;
-  int number;
 
 	print((int*) "This is Michael Noppinger's Selfie");
 	println();
