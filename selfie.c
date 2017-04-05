@@ -1344,8 +1344,8 @@ int rightShift(int n, int b) {
     // right shift of negative integers requires resetting the sign bit first,
     // then dividing with powers of two, and finally restoring the sign bit
     // but b bits to the right; this works even if n == INT_MIN
-    return ((n + 1) + INT_MAX) / twoToThePowerOf(b) +
-      (INT_MAX / twoToThePowerOf(b) + 1);
+    return ((n + 1) + INT_MAX) >> b) +
+      (INT_MAX >> b) + 1);
   else if (b == 31)
     // right shift of a negative 32-bit integer by 31 bits is 1 (the sign bit)
     return 1;
@@ -4431,7 +4431,7 @@ int getRD(int instruction) {
 }
 
 int getShamt(int instruction){
-  return rightShift((instruction, 21), 27);
+  return rightShift((instruction << 21), 27);
 }
 
 int getFunction(int instruction) {
