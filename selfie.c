@@ -7468,11 +7468,6 @@ int selfie() {
 	print((int*) "This is Michael Noppinger's Selfie");
 	println();
 
-  //number = leftShift(leftShift(50,2),2);
-  number = 50 << 2 << 2;
-
-  printInteger(number);
-  println();
 
 
 
