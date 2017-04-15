@@ -3098,7 +3098,10 @@ int gr_factor() {
     // not a cast: "(" expression ")"
     } else {
       type = gr_expression();
-
+        if (flipBits){
+          flipBits = 0;
+          emitRFormat(OP_SPECIAL, currentTemporary(), currentTemporary(), currentTemporary(), 0, FCT_NOR);
+        }
       if (symbol == SYM_RPARENTHESIS)
         getSymbol();
       else
@@ -3125,7 +3128,10 @@ int gr_factor() {
       getSymbol();
 
       type = gr_expression();
-
+        if (flipBits){
+          flipBits = 0;
+          emitRFormat(OP_SPECIAL, currentTemporary(), currentTemporary(), currentTemporary(), 0, FCT_NOR);
+        }
       if (symbol == SYM_RPARENTHESIS)
         getSymbol();
       else
@@ -7624,7 +7630,7 @@ int selfie() {
 
   int testNOR1;
 
-  testNOR1 = ~5;
+  testNOR1 = ~(5);
 
   testAND1 = ~(6 & 13);
   testAND2 = 6 & 1;
