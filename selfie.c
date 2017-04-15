@@ -729,7 +729,9 @@ int OP_JAL     = 0x03;
 int OP_BEQ     = 0x04;
 int OP_BNE     = 0x05;
 int OP_ADDIU   = 0x09;
+int OP_ANDI    = 0x0c;
 int OP_LW      = 0x23;
+int OP_ORI     = 0x0d;
 int OP_SW      = 0x2b;
 
 int* OPCODES; // strings representing MIPS opcodes
@@ -747,6 +749,9 @@ int FCT_MULTU   = 0x19;
 int FCT_DIVU    = 0x1b;
 int FCT_ADDU    = 0x21;
 int FCT_SUBU    = 0x23;
+int FCT_AND     = 0x24;
+int FCT_OR      = 0x25;
+int FCT_NOR     = 0x27;
 int FCT_SLT     = 0x2a;
 
 int* FUNCTIONS; // strings representing MIPS functions
@@ -775,8 +780,10 @@ void initDecoder() {
   *(OPCODES + OP_ADDIU)   = (int) "addiu";
   *(OPCODES + OP_LW)      = (int) "lw";
   *(OPCODES + OP_SW)      = (int) "sw";
+  *(OPCODES + OP_ANDI)    = (int) "andi";
+  *(OPCODES + OP_ORI)     = (int) "ori";
 
-  FUNCTIONS = malloc(43 * SIZEOFINTSTAR);
+  FUNCTIONS = malloc(46 * SIZEOFINTSTAR);
 
   *(FUNCTIONS + FCT_NOP)     = (int) "nop";
 
@@ -791,6 +798,9 @@ void initDecoder() {
   *(FUNCTIONS + FCT_DIVU)    = (int) "divu";
   *(FUNCTIONS + FCT_ADDU)    = (int) "addu";
   *(FUNCTIONS + FCT_SUBU)    = (int) "subu";
+  *(FUNCTIONS + FCT_AND)     = (int) "and";
+  *(FUNCTIONS + FCT_OR)      = (int) "or";
+  *(FUNCTIONS + FCT_NOR)     = (int) "nor";
   *(FUNCTIONS + FCT_SLT)     = (int) "slt";
 }
 
@@ -824,7 +834,7 @@ void selfie_load();
 
 // ------------------------ GLOBAL CONSTANTS -----------------------
 
-int maxBinaryLength = 131072; // 128KB
+int maxBinaryLength = 262144; // 256KB
 
 // ------------------------ GLOBAL VARIABLES -----------------------
 
@@ -994,6 +1004,7 @@ void initMemory(int megabytes) {
 // -----------------------------------------------------------------
 
 void fct_nop();
+void fct_sll();
 void fct_srl();
 void fct_sllv();
 void fct_srlv();
@@ -1006,6 +1017,9 @@ void fct_mflo();
 void fct_slt();
 void fct_jr();
 void fct_syscall();
+void fct_and();
+void fct_or();
+void fct_nor();
 
 void op_addiu();
 void op_lw();
@@ -1014,6 +1028,8 @@ void op_beq();
 void op_bne();
 void op_jal();
 void op_j();
+//void op_andi();
+//void op_ori();
 
 // -----------------------------------------------------------------
 // -------------------------- INTERPRETER --------------------------
@@ -3037,14 +3053,23 @@ int gr_factor() {
   int hasCast;
   int cast;
   int type;
+  int flipBits;
 
   int* variableOrProcedureName;
 
   // assert: n = allocatedTemporaries
 
   hasCast = 0;
+  flipBits = 0;
+
 
   type = INT_T;
+
+  //optional not
+  if (symbol == SYM_NOT) {
+    getSymbol();
+    flipBits = 1;
+  }
 
   while (lookForFactor()) {
     syntaxErrorUnexpected();
@@ -3180,6 +3205,10 @@ int gr_factor() {
     syntaxErrorUnexpected();
 
   // assert: allocatedTemporaries == n + 1
+  if (flipBits){
+    emitRFormat(OP_SPECIAL, currentTemporary(), currentTemporary(), currentTemporary(), 0, FCT_NOR);
+  }
+
 
   if (hasCast)
     return cast;
@@ -3430,12 +3459,65 @@ int gr_equalityExpression() {
   return ltype;
 }
 
-void gr_andExpression() {
-  return gr_equalityExpression();
+int gr_andExpression() {
+  int ltype;
+  int rtype;
+
+  // assert: n = allocatedTemporaries
+
+  ltype = gr_equalityExpression();
+
+  // assert: allocatedTemporaries == n + 1
+
+  if (symbol == SYM_AND) {
+    getSymbol();
+
+    rtype = gr_equalityExpression();
+
+    // assert: allocatedTemporaries == n + 2
+
+    if (ltype != rtype)
+      typeWarning(ltype, rtype);
+
+    emitRFormat(OP_SPECIAL, currentTemporary(), previousTemporary(), previousTemporary(), 0, FCT_AND);
+    tfree(1);
+
+  }
+
+  // assert: allocatedTemporaries == n + 1
+
+  return ltype;
 }
 
-void gr_expression() {
-  return gr_andExpression();
+int gr_expression() {
+  int ltype;
+  int rtype;
+
+  // assert: n = allocatedTemporaries
+
+  ltype = gr_andExpression();
+
+  // assert: allocatedTemporaries == n + 1
+
+  if (symbol == SYM_OR) {
+    getSymbol();
+
+    rtype = gr_andExpression();
+
+    // assert: allocatedTemporaries == n + 2
+
+    if (ltype != rtype)
+      typeWarning(ltype, rtype);
+
+    emitRFormat(OP_SPECIAL, currentTemporary(), previousTemporary(), previousTemporary(), 0, FCT_OR);
+    tfree(1);
+
+  }
+
+  // assert: allocatedTemporaries == n + 1
+
+  return ltype;
+
 }
 
 void gr_while() {
@@ -5908,6 +5990,7 @@ void fct_sllv() {
   }
 
 }
+
 void fct_srlv() {
   if (debug) {
     printFunction(function);
@@ -6246,6 +6329,33 @@ void fct_jr() {
       printHexadecimal(pc, 0);
     }
     println();
+  }
+}
+
+void fct_and() {
+  if (interpret) {
+
+    *(registers+rd) = (*(registers+rt) & *(registers+rs));
+
+    pc = pc + WORDSIZE;
+  }
+}
+
+void fct_or() {
+  if (interpret) {
+
+    *(registers+rd) = (*(registers+rt) | *(registers+rs));
+
+    pc = pc + WORDSIZE;
+  }
+}
+
+void fct_nor() {
+  if (interpret) {
+
+    *(registers+rd) = ~(*(registers+rt) | *(registers+rs));
+
+    pc = pc + WORDSIZE;
   }
 }
 
@@ -6688,7 +6798,7 @@ void execute() {
     printHexadecimal(ir, 8);
     print((int*) ": ");
   }
-//TODOMINO
+//TODOMINO insert codes for or nor, nori + andi
 
   if (opcode == OP_SPECIAL) {
     if (ir == 0)
@@ -6719,6 +6829,12 @@ void execute() {
       fct_jr();
     else if (function == FCT_SYSCALL)
       fct_syscall();
+    else if (function == FCT_AND)
+      fct_and();
+    else if (function == FCT_OR)
+      fct_or();
+    else if (function == FCT_NOR)
+      fct_nor();
     else
       throwException(EXCEPTION_UNKNOWNINSTRUCTION, 0);
   } else if (opcode == OP_ADDIU)
@@ -7500,9 +7616,46 @@ void printUsage() {
 
 int selfie() {
   int* option;
+  int testAND1;
+  int testAND2;
+
+  int testOR1;
+  int testOR2;
+
+  int testNOR1;
+
+  testNOR1 = ~5;
+
+  testAND1 = ~(6 & 13);
+  testAND2 = 6 & 1;
+
+  testOR1  = 5 | 3;
+
 
 	print((int*) "This is Michael Noppinger's Selfie");
 	println();
+  printBinary(testAND1, 32);
+  println();
+
+  printInteger(testAND1);
+  println();
+  printBinary(testAND2, 32);
+  println();
+
+  print((int*) "Test OR FCT: (should be 7)");
+  println();
+  printInteger(testOR1);
+  println();
+  print((int*) "Test NOR FCT: (should be -6)");
+  println();
+  printInteger(testNOR1);
+  println();
+
+
+
+
+
+
 
 
 
