@@ -67,13 +67,17 @@ statement        = call ";" | while | if | return ";" |
 
 call             = identifier "(" [ expression { "," expression } ] ")" .
 
-expression       = shiftExpression { ( "==" | "!=" | "<" | ">" | "<=" | ">=" ) shiftExpression } .
+expression     = andExpression { "|" andExpression } .
+
+andExpression    = equalityExpression { "&"  equalityExpression }.
+
+equalityExpression       = shiftExpression { ( "==" | "!=" | "<" | ">" | "<=" | ">=" ) shiftExpression } .
 
 shiftExpression  = simpleExpression [ ( "<<" | ">>" ) simpleExpression ] .
 
 simpleExpression = [ "-" ] term { ( "+" | "-" ) term } .
 
-term             = factor { ( "*" | "/" | "%" ) factor } .
+term             = [ "~" ] factor { ( "*" | "/" | "%" ) [ "~" ] factor } .
 
 factor           = [ cast ]
                     ( [ "*" ] ( identifier | "(" expression ")" ) |
