@@ -154,6 +154,9 @@ int CHAR_EXCLAMATION  = '!';
 int CHAR_PERCENTAGE   = '%';
 int CHAR_SINGLEQUOTE  = 39; // ASCII code 39 = '
 int CHAR_DOUBLEQUOTE  = '"';
+int CHAR_OR           = '|';
+int CHAR_AND          = '&';
+int CHAR_NOT          = '~';
 
 int SIZEOFINT     = 4; // must be the same as WORDSIZE
 int SIZEOFINTSTAR = 4; // must be the same as WORDSIZE
@@ -318,6 +321,11 @@ int SYM_CHARACTER    = 26; // character
 int SYM_STRING       = 27; // string
 int SYM_LSHIFT       = 28; // <<
 int SYM_RSHIFT       = 29; // >>
+int SYM_OR           = 30; // |
+int SYM_AND          = 31; // &
+int SYM_NOT          = 32; // ~
+
+
 
 int* SYMBOLS; // strings representing symbols
 
@@ -355,7 +363,7 @@ int  sourceFD   = 0;        // file descriptor of open source file
 // ------------------------- INITIALIZATION ------------------------
 
 void initScanner () {
-  SYMBOLS = malloc(31 * SIZEOFINTSTAR);
+  SYMBOLS = malloc(34 * SIZEOFINTSTAR);
 
   *(SYMBOLS + SYM_IDENTIFIER)   = (int) "identifier";
   *(SYMBOLS + SYM_INTEGER)      = (int) "integer";
@@ -387,6 +395,9 @@ void initScanner () {
   *(SYMBOLS + SYM_STRING)       = (int) "string";
   *(SYMBOLS + SYM_LSHIFT)       = (int) "<<";
   *(SYMBOLS + SYM_RSHIFT)       = (int) ">>";
+  *(SYMBOLS + SYM_OR)           = (int) "|";
+  *(SYMBOLS + SYM_AND)          = (int) "&";
+  *(SYMBOLS + SYM_NOT)          = (int) "~";
 
   character = CHAR_EOF;
   symbol    = SYM_EOF;
@@ -530,6 +541,8 @@ int  gr_factor();
 int  gr_term();
 int  gr_simpleExpression();
 int  gr_shiftExpression();
+int  gr_equalityExpression();
+int  gr_andExpression();
 int  gr_expression();
 void gr_while();
 void gr_if();
@@ -2389,6 +2402,21 @@ void getSymbol() {
 
         symbol = SYM_MOD;
 
+      } else if (character == CHAR_OR) {
+        getCharacter();
+
+        symbol = SYM_OR;
+
+      } else if (character == CHAR_AND) {
+        getCharacter();
+
+        symbol = SYM_AND;
+
+      } else if (character == CHAR_NOT) {
+        getCharacter();
+
+        symbol = SYM_NOT;
+
       } else {
         printLineNumber((int*) "error", lineNumber);
         print((int*) "found unknown character ");
@@ -3315,7 +3343,7 @@ int gr_shiftExpression(){
   return ltype;
 }
 
-int gr_expression() {
+int gr_equalityExpression() {
   int ltype;
   int operatorSymbol;
   int rtype;
@@ -3400,6 +3428,14 @@ int gr_expression() {
   // assert: allocatedTemporaries == n + 1
 
   return ltype;
+}
+
+void gr_andExpression() {
+  return gr_equalityExpression();
+}
+
+void gr_expression() {
+  return gr_andExpression();
 }
 
 void gr_while() {
