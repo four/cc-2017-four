@@ -99,6 +99,8 @@ int twoToThePowerOf(int p);
 int leftShift(int n, int b);
 int rightShift(int n, int b);
 
+int maskFromMSB(int toBeMasked, int sizeOfMask);
+
 int  loadCharacter(int* s, int i);
 int* storeCharacter(int* s, int i, int c);
 
@@ -228,7 +230,9 @@ void initLibrary() {
 
   // compute INT_MAX and INT_MIN without integer overflows
   INT_MAX = (twoToThePowerOf(30) - 1) * 2 + 1;
-  INT_MIN = -INT_MAX - 1;
+  //INT_MIN = -INT_MAX - 1;
+  //INT_MIN ist 1 kleiner als INT_MAX
+  INT_MIN = ~INT_MAX+1-1;
 
   INT16_MAX = twoToThePowerOf(15) - 1;
   INT16_MIN = -INT16_MAX - 1;
@@ -834,7 +838,7 @@ void selfie_load();
 
 // ------------------------ GLOBAL CONSTANTS -----------------------
 
-int maxBinaryLength = 262144; // 256KB
+int maxBinaryLength = 524288; // 512KB
 
 // ------------------------ GLOBAL VARIABLES -----------------------
 
@@ -1028,8 +1032,8 @@ void op_beq();
 void op_bne();
 void op_jal();
 void op_j();
-//void op_andi();
-//void op_ori();
+void op_andi();
+void op_ori();
 
 // -----------------------------------------------------------------
 // -------------------------- INTERPRETER --------------------------
@@ -1384,16 +1388,35 @@ int rightShift(int n, int b) {
     return 0;
 }
 
+int maskFromMSB(int toBeMasked, int sizeOfMask) {
+  if(sizeOfMask <= 0){
+    return toBeMasked;
+  }
+  else if(sizeOfMask == 1){
+    return INT_MIN & toBeMasked;
+  } else
+  return ((~(-1-(twoToThePowerOf(32-sizeOfMask)-1))) & toBeMasked);
+}
+
 int loadCharacter(int* s, int i) {
   // assert: i >= 0
   int a;
-
+  int b;
+  int c;
+  //word = 32-bit
+  //char = 8-bit
   // a is the index of the word where the to-be-loaded i-th character in s is
   a = i / SIZEOFINT;
 
+  //"leftshift" by b bits
+  b = ((SIZEOFINT - 1) - (i % SIZEOFINT)) * 8;
+  //rightshift by c bits
+  c = (SIZEOFINT - 1) * 8;
+
+
   // shift to-be-loaded character to the left resetting all bits to the left
   // then shift to-be-loaded character all the way to the right and return
-  return rightShift((*(s + a) << ((SIZEOFINT - 1) - (i % SIZEOFINT)) * 8), (SIZEOFINT - 1) * 8);
+  return rightShift(maskFromMSB(*(s + a), b), c-b);
 }
 
 int* storeCharacter(int* s, int i, int c) {
@@ -3484,7 +3507,7 @@ int gr_andExpression() {
 
     if (ltype != rtype)
       typeWarning(ltype, rtype);
-
+      //TODOMINO implement immediate
     emitRFormat(OP_SPECIAL, currentTemporary(), previousTemporary(), previousTemporary(), 0, FCT_AND);
     tfree(1);
 
@@ -4544,31 +4567,32 @@ int getOpcode(int instruction) {
 }
 
 int getRS(int instruction) {
-  return rightShift((instruction << 6), 27);
+  return rightShift((maskFromMSB(instruction, 6)), 21);
+  //return rightShift((instruction << 6), 27);
 }
 
 int getRT(int instruction) {
-  return rightShift((instruction << 11), 27);
+  return rightShift((maskFromMSB(instruction, 11)), 16);
 }
 
 int getRD(int instruction) {
-  return rightShift((instruction << 16), 27);
+  return rightShift((maskFromMSB(instruction, 16)), 11);
 }
 
 int getShamt(int instruction){
-  return rightShift((instruction << 21), 27);
+  return rightShift((maskFromMSB(instruction, 21)), 6);
 }
 
 int getFunction(int instruction) {
-  return rightShift((instruction << 26), 26);
+  return maskFromMSB(instruction, 26);
 }
 
 int getImmediate(int instruction) {
-  return rightShift((instruction << 16), 16);
+  return maskFromMSB(instruction, 16);
 }
 
 int getInstrIndex(int instruction) {
-  return rightShift((instruction << 6), 6);
+  return maskFromMSB(instruction, 6);
 }
 
 int signExtend(int immediate) {
@@ -6404,6 +6428,24 @@ void fct_syscall() {
   }
 }
 
+void op_ori() {
+  if (interpret) {
+    *(registers+rt) = *(registers+rs) | signExtend(immediate);
+
+
+    pc = pc + WORDSIZE;
+  }
+}
+
+void op_andi() {
+  if (interpret) {
+    *(registers+rt) = *(registers+rs) & signExtend(immediate);
+
+
+    pc = pc + WORDSIZE;
+  }
+}
+
 void op_addiu() {
   if (debug) {
     printOpcode(opcode);
@@ -6857,6 +6899,10 @@ void execute() {
     op_jal();
   else if (opcode == OP_J)
     op_j();
+  else if (opcode == OP_ORI)
+    op_ori();
+  else if (opcode == OP_ANDI)
+    op_andi();
   else
     throwException(EXCEPTION_UNKNOWNINSTRUCTION, 0);
 }
@@ -7630,31 +7676,60 @@ int selfie() {
 
   int testNOR1;
 
-  testNOR1 = ~(5);
+  int testmask;
+  int testlc;
+  int testdivision;
 
-  testAND1 = ~(6 & 13);
-  testAND2 = 6 & 1;
+  testmask = maskFromMSB(-1,1);
+  //testmask = -1;
 
-  testOR1  = 5 | 3;
+  testlc = loadCharacter("abc", 2);
+  testdivision = 7/3;
 
+  // testNOR1 = ~(5);
+  //
+  // testAND1 = ~(6 & testNOR1)+23;
+  // testAND2 = 6 & 1;
+  //
+  // testOR1  = 5 | 3;
+  //
+  //
+	 print((int*) "This is Michael Noppinger's Selfie");
+	 println();
+  // printBinary(testAND1, 32);
+  // println();
+  //
+  // printInteger(testAND1);
+  // println();
+  // printBinary(testAND1, 32);
+  // println();
+  //
+  // print((int*) "Test OR FCT: (should be 7)");
+  // println();
+  // printInteger(testOR1);
+  // println();
+  // print((int*) "Test NOR FCT: (should be -6)");
+  // println();
+  // printInteger(testNOR1);
+  // println();
 
-	print((int*) "This is Michael Noppinger's Selfie");
-	println();
-  printBinary(testAND1, 32);
+  println();
+  print((int*) " TEST division:");
+  println();
+  printInteger(testdivision);
+  println();
+  println();
+  print((int*) " TEST load character:");
+  println();
+  printInteger(testlc);
+  println();
+  println();
+  print((int*) "MASK TEST:");
+  println();
+  printInteger(testmask);
   println();
 
-  printInteger(testAND1);
-  println();
-  printBinary(testAND2, 32);
-  println();
-
-  print((int*) "Test OR FCT: (should be 7)");
-  println();
-  printInteger(testOR1);
-  println();
-  print((int*) "Test NOR FCT: (should be -6)");
-  println();
-  printInteger(testNOR1);
+  printBinary(testmask, 32);
   println();
 
 
