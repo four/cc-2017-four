@@ -1401,27 +1401,32 @@ int maskFromMSB(int toBeMasked, int sizeOfMask) {
 int loadCharacter(int* s, int i) {
   // assert: i >= 0
   int a;
-  int b;
-  int c;
+
   //word = 32-bit
   //char = 8-bit
   // a is the index of the word where the to-be-loaded i-th character in s is
   a = i / SIZEOFINT;
 
-  //"leftshift" by b bits
-  b = ((SIZEOFINT - 1) - (i % SIZEOFINT)) * 8;
-  //rightshift by c bits
-  c = (SIZEOFINT - 1) * 8;
-
-
   // shift to-be-loaded character to the left resetting all bits to the left
   // then shift to-be-loaded character all the way to the right and return
-  return rightShift(maskFromMSB(*(s + a), b), c-b);
+  // now: shift needed character to the right and mask out unneccessary chars.
+  return rightShift(*(s + a), (i % SIZEOFINT) * 8) & 0xFF;
 }
 
 int* storeCharacter(int* s, int i, int c) {
   // assert: i >= 0, all characters are 7-bit
   int a;
+  int mask;
+
+  if(i % SIZEOFINT == 0){
+    mask = ~(0xFF);
+  }else if(i % SIZEOFINT == 1){
+    mask = ~(0xFF00);
+  }else if(i % SIZEOFINT == 2){
+    mask = ~(0xFF0000);
+  }else if(i % SIZEOFINT == 3){
+    mask = 0xFFFFFF;
+  }
 
   // a is the index of the word where the with c
   // to-be-overwritten i-th character in s is
@@ -1429,7 +1434,8 @@ int* storeCharacter(int* s, int i, int c) {
 
   // subtract the to-be-overwritten character resetting its bits in s
   // then add c setting its bits at the i-th position in s
-  *(s + a) = (*(s + a) - (loadCharacter(s, i) << (i % SIZEOFINT) * 8)) + (c << (i % SIZEOFINT) * 8);
+  //*(s + a) = (*(s + a) - (loadCharacter(s, i) << (i % SIZEOFINT) * 8)) + (c << (i % SIZEOFINT) * 8);
+  *(s + a) = (*(s + a) & mask) | (c << (i % SIZEOFINT) * 8);
 
   return s;
 }
@@ -4523,7 +4529,7 @@ int encodeRFormat(int opcode, int rs, int rt, int rd, int shamt, int function) {
   // assert: 0 <= rd < 2^5
   // assert: 0 <= shamt 2^5
   // assert: 0 <= function < 2^6
-  return (((((opcode << 5) + rs << 5) + rt << 5) + rd << 5) + shamt << 6) + function;
+  return ((((((((opcode << 5) | rs << 5) | rt ) << 5) | rd ) << 5) | shamt ) << 6) | function;
 }
 
 // -----------------------------------------------------------------
@@ -4542,7 +4548,7 @@ int encodeIFormat(int opcode, int rs, int rt, int immediate) {
     // convert from 32-bit to 16-bit two's complement
     immediate = immediate + twoToThePowerOf(16);
 
-  return (((opcode << 5) + rs << 5) + rt << 16) + immediate;
+  return (((((opcode << 5) | rs ) << 5) |  rt ) << 16) | immediate;
 }
 
 // --------------------------------------------------------------
@@ -4555,7 +4561,7 @@ int encodeIFormat(int opcode, int rs, int rt, int immediate) {
 int encodeJFormat(int opcode, int instr_index) {
   // assert: 0 <= opcode < 2^6
   // assert: 0 <= instr_index < 2^26
-  return (opcode << 26) + instr_index;
+  return (opcode << 26) | instr_index;
 }
 
 // -----------------------------------------------------------------
@@ -4567,32 +4573,32 @@ int getOpcode(int instruction) {
 }
 
 int getRS(int instruction) {
-  return rightShift((maskFromMSB(instruction, 6)), 21);
+  return rightShift((instruction & 0x3FFFFFF), 21);
   //return rightShift((instruction << 6), 27);
 }
 
 int getRT(int instruction) {
-  return rightShift((maskFromMSB(instruction, 11)), 16);
+  return rightShift((instruction & 0x1FFFFF), 16);
 }
 
 int getRD(int instruction) {
-  return rightShift((maskFromMSB(instruction, 16)), 11);
+  return rightShift((instruction & 0xFFFF), 11);
 }
 
 int getShamt(int instruction){
-  return rightShift((maskFromMSB(instruction, 21)), 6);
+  return rightShift((instruction & 0x7FF), 6);
 }
 
 int getFunction(int instruction) {
-  return maskFromMSB(instruction, 26);
+  return instruction & 0x3FF;
 }
 
 int getImmediate(int instruction) {
-  return maskFromMSB(instruction, 16);
+  return instruction & 0xFFFF;
 }
 
 int getInstrIndex(int instruction) {
-  return maskFromMSB(instruction, 6);
+  return instruction & 0x3FFFFFF;
 }
 
 int signExtend(int immediate) {
@@ -7668,27 +7674,25 @@ void printUsage() {
 
 int selfie() {
   int* option;
-  int testAND1;
-  int testAND2;
-
-  int testOR1;
-  int testOR2;
-
-  int testNOR1;
-
-  int testmask;
-  int testlc;
-  int testdivision;
-
-  testmask = maskFromMSB(-1,1);
-  //testmask = -1;
-
-  testlc = loadCharacter("abc", 2);
-  testdivision = 7/3;
-
-  // testNOR1 = ~(5);
+  // int testAND1;
+  // int testAND2;
   //
-  // testAND1 = ~(6 & testNOR1)+23;
+  // int testOR1;
+  // int testOR2;
+  //
+  // int testNOR1;
+  //
+  // int testmask;
+  // int testlc;
+  // int test;
+  //
+  //
+  // testlc = loadCharacter("abc", 2);
+  // test = 0xFFFFFF;
+  //
+  // // testNOR1 = ~(5);
+  // //
+  // // testAND1 = ~(6 & testNOR1)+23;
   // testAND2 = 6 & 1;
   //
   // testOR1  = 5 | 3;
@@ -7711,26 +7715,26 @@ int selfie() {
   // print((int*) "Test NOR FCT: (should be -6)");
   // println();
   // printInteger(testNOR1);
+  // // println();
+  //
   // println();
-
-  println();
-  print((int*) " TEST division:");
-  println();
-  printInteger(testdivision);
-  println();
-  println();
-  print((int*) " TEST load character:");
-  println();
-  printInteger(testlc);
-  println();
-  println();
-  print((int*) "MASK TEST:");
-  println();
-  printInteger(testmask);
-  println();
-
-  printBinary(testmask, 32);
-  println();
+  // print((int*) " TEST:");
+  // println();
+  // printBinary(test,32);
+  // println();
+  // println();
+  // print((int*) " TEST load character:");
+  // println();
+  // printInteger(testlc);
+  // println();
+  // println();
+  // print((int*) "MASK TEST:");
+  // println();
+  // printInteger(testmask);
+  // println();
+  //
+  // printBinary(testmask, 32);
+  // println();
 
 
 
