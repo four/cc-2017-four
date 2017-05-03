@@ -3105,6 +3105,17 @@ int gr_factor() {
   int type;
   int flipBits;
 
+  int leftAttributeValue;
+  int isLeftAttributeSet;
+  int isleftAndRightConstant;
+  int folded;
+  int enteredLoop;
+  //code folding:
+  leftAttributeValue = 0;
+  isLeftAttributeSet = 0;
+  isleftAndRightConstant = 0;
+  folded = 0;
+
   int* variableOrProcedureName;
 
   // assert: n = allocatedTemporaries
@@ -3148,8 +3159,17 @@ int gr_factor() {
     // not a cast: "(" expression ")"
     } else {
       type = gr_expression();
+      if(attribute_flag){
+        //load_integer(attribute_value);
+        attribute_flag = 0;
+        //save left side into local variable
+        isLeftAttributeSet = 1;
+        leftAttributeValue = attribute_value;
+      }
         if (flipBits){
           flipBits = 0;
+          load_integer(leftAttributeValue);
+          isLeftAttributeSet = 0;
           emitRFormat(OP_SPECIAL, currentTemporary(), currentTemporary(), currentTemporary(), 0, FCT_NOR);
         }
       if (symbol == SYM_RPARENTHESIS)
@@ -3158,7 +3178,15 @@ int gr_factor() {
         syntaxErrorSymbol(SYM_RPARENTHESIS);
 
       // assert: allocatedTemporaries == n + 1
-
+        attribute_flag = 0;
+      if(isLeftAttributeSet == 1){
+        //print((int*) "Wrote laV.");
+        // println();
+        isLeftAttributeSet = 0;
+        //load_integer(leftAttributeValue);
+        attribute_flag = 1;
+        attribute_value = leftAttributeValue;
+      }
       return type;
     }
   }
@@ -3709,6 +3737,10 @@ int gr_expression() {
   // assert: n = allocatedTemporaries
 
   ltype = gr_andExpression();
+  if(attribute_flag){
+    load_integer(attribute_value);
+    attribute_flag = 0;
+  }
 
   // assert: allocatedTemporaries == n + 1
 
@@ -3716,6 +3748,10 @@ int gr_expression() {
     getSymbol();
 
     rtype = gr_andExpression();
+    if(attribute_flag){
+      load_integer(attribute_value);
+      attribute_flag = 0;
+    }
 
     // assert: allocatedTemporaries == n + 2
 
