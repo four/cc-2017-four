@@ -2891,12 +2891,6 @@ int load_variable(int* variable) {
 
 void load_integer(int value) {
   // assert: value >= 0 or value == INT_MIN
-  int loadedNegativeInteger;
-  loadedNegativeInteger = 0;
-  if(value < 0){
-    value = ~value;
-    loadedNegativeInteger = 1;
-  }
 
   talloc();
 
@@ -2934,9 +2928,6 @@ void load_integer(int value) {
     // and then multiply 2^14 by 2^14*2^3 to get to 2^31 == INT_MIN
     emitLeftShiftBy(14);
     emitLeftShiftBy(3);
-  }
-  if(loadedNegativeInteger){
-    emitRFormat(OP_SPECIAL, currentTemporary(), currentTemporary(), currentTemporary(), 0, FCT_NOR);
   }
 }
 
@@ -3348,6 +3339,7 @@ int gr_term() {
           leftAttributeValue = leftAttributeValue % attribute_value;
         }
         isLeftAttributeSet = 1;
+        isleftAndRightConstant = 0;
       } else {
         // print((int*) "REGULAR.");
         // println();
@@ -7820,7 +7812,7 @@ int selfie() {
   a = 2;
   //
   //
-  testfold = 22/22*22/22;
+  testfold = 2*3*1*3*a*a*2*2*2+2;
   // testlc = loadCharacter("abc", 2);
   // test = 0xFFFFFF;
   //
