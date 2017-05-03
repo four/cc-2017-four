@@ -2755,7 +2755,7 @@ int currentTemporary() {
   if (allocatedTemporaries > 0)
     return allocatedTemporaries + REG_A3;
   else {
-    syntaxErrorMessage((int*) "illegal register access");
+    syntaxErrorMessage((int*) "illegal register access (talloc)");
 
     exit(-1);
   }
@@ -2765,7 +2765,7 @@ int previousTemporary() {
   if (allocatedTemporaries > 1)
     return currentTemporary() - 1;
   else {
-    syntaxErrorMessage((int*) "illegal register access");
+    syntaxErrorMessage((int*) "illegal register access (previousTemporary)");
 
     exit(-1);
   }
@@ -2891,6 +2891,13 @@ int load_variable(int* variable) {
 
 void load_integer(int value) {
   // assert: value >= 0 or value == INT_MIN
+  int negativeValueLoaded;
+  negativeValueLoaded = 0;
+
+  if(value < 0){
+    value = ~value;
+    negativeValueLoaded = 1;
+  }
 
   talloc();
 
@@ -2928,6 +2935,9 @@ void load_integer(int value) {
     // and then multiply 2^14 by 2^14*2^3 to get to 2^31 == INT_MIN
     emitLeftShiftBy(14);
     emitLeftShiftBy(3);
+  }
+  if(negativeValueLoaded){
+    emitRFormat(OP_SPECIAL, currentTemporary(), currentTemporary(), currentTemporary(), 0, FCT_NOR);
   }
 }
 
@@ -3395,14 +3405,16 @@ int gr_simpleExpression() {
   int ltype;
   int operatorSymbol;
   int rtype;
-  int leftAttribute;
+  int leftAttributeValue;
   int isLeftAttributeSet;
+  int isleftAndRightConstant;
+  int folded;
+  int enteredLoop;
   //code folding:
-  leftAttribute = 0;
+  leftAttributeValue = 0;
   isLeftAttributeSet = 0;
-
-
-
+  isleftAndRightConstant = 0;
+  folded = 0;
   // assert: n = allocatedTemporaries
 
   // optional: -
@@ -3428,22 +3440,24 @@ int gr_simpleExpression() {
 
   ltype = gr_term();
 
-  //delayed code generation
   if(attribute_flag){
-    load_integer(attribute_value);
+    //load_integer(attribute_value);
     attribute_flag = 0;
+    //save left side into local variable
+    isLeftAttributeSet = 1;
+    leftAttributeValue = attribute_value;
   }
 
   // assert: allocatedTemporaries == n + 1
+  if(isLeftAttributeSet == 0){
+    if (sign) {
+      if (ltype != INT_T) {
+        typeWarning(INT_T, ltype);
 
-  if (sign) {
-    if (ltype != INT_T) {
-      typeWarning(INT_T, ltype);
-
-      ltype = INT_T;
+        ltype = INT_T;
+      }
+        emitRFormat(OP_SPECIAL, REG_ZR, currentTemporary(), currentTemporary(), 0, FCT_SUBU);
     }
-
-    emitRFormat(OP_SPECIAL, REG_ZR, currentTemporary(), currentTemporary(), 0, FCT_SUBU);
   }
 
   // + or -?
@@ -3451,37 +3465,82 @@ int gr_simpleExpression() {
     operatorSymbol = symbol;
 
     getSymbol();
+    if(sign){
+      leftAttributeValue = -1*leftAttributeValue;
+      sign = 0;
+    }
+
+    //if left side is constant and right side is no constant load_integer left side
+    if(isLeftAttributeSet == 1){
+      if(symbol != SYM_INTEGER){
+        isLeftAttributeSet = 0;
+        load_integer(leftAttributeValue);
+      }
+    }
 
     rtype = gr_term();
 
-    //delayed code generation
-    if(attribute_flag){
-      load_integer(attribute_value);
-      attribute_flag = 0;
+    if (isLeftAttributeSet){
+      if(attribute_flag){
+        attribute_flag = 0;
+        isleftAndRightConstant = 1;
+      }
     }
-
     // assert: allocatedTemporaries == n + 2
 
-    if (operatorSymbol == SYM_PLUS) {
-      if (ltype == INTSTAR_T) {
-        if (rtype == INT_T)
-          // pointer arithmetic: factor of 2^2 of integer operand
-          emitLeftShiftBy(2);
-      } else if (rtype == INTSTAR_T)
-        typeWarning(ltype, rtype);
+    if(isleftAndRightConstant){
+      folded = 1;
+      print((int*) "Folded PLUSMINUS.");
+      println();
 
-      emitRFormat(OP_SPECIAL, previousTemporary(), currentTemporary(), previousTemporary(), 0, FCT_ADDU);
+      if (operatorSymbol == SYM_PLUS) {
+        leftAttributeValue = leftAttributeValue + attribute_value;
+      } else if (operatorSymbol == SYM_MINUS) {
+        leftAttributeValue = leftAttributeValue - attribute_value;
+      }
+      printInteger(leftAttributeValue);
+      println();
 
-    } else if (operatorSymbol == SYM_MINUS) {
-      if (ltype != rtype)
-        typeWarning(ltype, rtype);
+      isLeftAttributeSet = 1;
+      isleftAndRightConstant = 0;
+    }else{
+      if(attribute_flag){
+        load_integer(attribute_value);
+        attribute_flag = 0;
+      }
 
-      emitRFormat(OP_SPECIAL, previousTemporary(), currentTemporary(), previousTemporary(), 0, FCT_SUBU);
+      if (operatorSymbol == SYM_PLUS) {
+        if (ltype == INTSTAR_T) {
+          if (rtype == INT_T)
+            // pointer arithmetic: factor of 2^2 of integer operand
+            emitLeftShiftBy(2);
+        } else if (rtype == INTSTAR_T)
+          typeWarning(ltype, rtype);
+
+        emitRFormat(OP_SPECIAL, previousTemporary(), currentTemporary(), previousTemporary(), 0, FCT_ADDU);
+
+      } else if (operatorSymbol == SYM_MINUS) {
+        if (ltype != rtype)
+          typeWarning(ltype, rtype);
+
+        emitRFormat(OP_SPECIAL, previousTemporary(), currentTemporary(), previousTemporary(), 0, FCT_SUBU);
+      }
+
+      tfree(1);
     }
-
-    tfree(1);
   }
-
+  attribute_flag = 0;
+if(isLeftAttributeSet == 1){
+  //print((int*) "Wrote laV.");
+  // println();
+  isLeftAttributeSet = 0;
+  //load_integer(leftAttributeValue);
+  attribute_flag = 1;
+  if(sign){
+    leftAttributeValue = -leftAttributeValue;
+  }
+  attribute_value = leftAttributeValue;
+}
   // assert: allocatedTemporaries == n + 1
 
   return ltype;
@@ -4692,7 +4751,7 @@ int getOpcode(int instruction) {
 }
 
 int getRS(int instruction) {
-  return rightShift((instruction & 0x3FFFFFF), 21);
+  return rightShift((instruction & 0x3FFFFFF), 32-(6+5));
   //return rightShift((instruction << 6), 27);
 }
 
@@ -7812,7 +7871,7 @@ int selfie() {
   a = 2;
   //
   //
-  testfold = 2*3*1*3*a*a*2*2*2+2;
+  testfold = (-1)*a;
   // testlc = loadCharacter("abc", 2);
   // test = 0xFFFFFF;
   //
