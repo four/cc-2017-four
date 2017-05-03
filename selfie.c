@@ -7820,7 +7820,7 @@ int selfie() {
   a = 2;
   //
   //
-  testfold = 1*1*1*1*a*a*1*1*1*1+22;
+  testfold = 22/22*22/22;
   // testlc = loadCharacter("abc", 2);
   // test = 0xFFFFFF;
   //
