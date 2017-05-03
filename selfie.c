@@ -1379,7 +1379,10 @@ int rightShift(int n, int b) {
     // then dividing with powers of two, and finally restoring the sign bit
     // but b bits to the right; this works even if n == INT_MIN
     return (((n + 1) + INT_MAX) >> b) +
-      ((INT_MAX >> b) + 1);
+    ((INT_MAX
+      >>
+      b)
+    + 1);
   else if (b == 31)
     // right shift of a negative 32-bit integer by 31 bits is 1 (the sign bit)
     return 1;
@@ -2599,6 +2602,14 @@ int reportUndefinedProcedures() {
 // ---------------------------- PARSER -----------------------------
 // -----------------------------------------------------------------
 
+// ------------------------ GLOBAL VARIABLES -----------------------
+
+int attribute_flag  = 0;
+int attribute_value = 0;
+
+// -----------------------------------------------------------------
+
+
 int isNotRbraceOrEOF() {
   if (symbol == SYM_RBRACE)
     return 0;
@@ -2734,7 +2745,7 @@ void talloc() {
   if (allocatedTemporaries < REG_T7 - REG_A3)
     allocatedTemporaries = allocatedTemporaries + 1;
   else {
-    syntaxErrorMessage((int*) "out of registers");
+    syntaxErrorMessage((int*) "out of registers (talloc)");
 
     exit(-1);
   }
@@ -2764,7 +2775,7 @@ int nextTemporary() {
   if (allocatedTemporaries < REG_T7 - REG_A3)
     return currentTemporary() + 1;
   else {
-    syntaxErrorMessage((int*) "out of registers");
+    syntaxErrorMessage((int*) "out of registers (nextTemporary)");
 
     exit(-1);
   }
@@ -2880,6 +2891,12 @@ int load_variable(int* variable) {
 
 void load_integer(int value) {
   // assert: value >= 0 or value == INT_MIN
+  int loadedNegativeInteger;
+  loadedNegativeInteger = 0;
+  if(value < 0){
+    value = ~value;
+    loadedNegativeInteger = 1;
+  }
 
   talloc();
 
@@ -2917,6 +2934,9 @@ void load_integer(int value) {
     // and then multiply 2^14 by 2^14*2^3 to get to 2^31 == INT_MIN
     emitLeftShiftBy(14);
     emitLeftShiftBy(3);
+  }
+  if(loadedNegativeInteger){
+    emitRFormat(OP_SPECIAL, currentTemporary(), currentTemporary(), currentTemporary(), 0, FCT_NOR);
   }
 }
 
@@ -3202,7 +3222,12 @@ int gr_factor() {
 
   // integer?
   } else if (symbol == SYM_INTEGER) {
-    load_integer(literal);
+
+    //delay code generation
+    attribute_flag = 1;
+    attribute_value = literal;
+
+    //load_integer(literal);
 
     getSymbol();
 
@@ -3255,42 +3280,119 @@ int gr_term() {
   int ltype;
   int operatorSymbol;
   int rtype;
-
+  int leftAttributeValue;
+  int isLeftAttributeSet;
+  int isAttributeStored;
+  int isleftAndRightConstant;
+  int folded;
+  //code folding:
+  leftAttributeValue = 0;
+  isLeftAttributeSet = 0;
+  isAttributeStored = 0;
+  isleftAndRightConstant = 0;
+  folded = 0;
   // assert: n = allocatedTemporaries
+
 
   ltype = gr_factor();
 
+  //delayed code generation
+  if(attribute_flag){
+    //load_integer(attribute_value);
+    attribute_flag = 0;
+    //save left side into local variable
+    isLeftAttributeSet = 1;
+    leftAttributeValue = attribute_value;
+  }
   // assert: allocatedTemporaries == n + 1
 
   // * / or % ?
   while (isStarOrDivOrModulo()) {
-    operatorSymbol = symbol;
+      operatorSymbol = symbol;
 
-    getSymbol();
+      getSymbol();
 
-    rtype = gr_factor();
+      //if left side is constant and right side is no constant load_integer left side
+      if(isLeftAttributeSet == 1){
+        if(symbol != SYM_INTEGER){
+          isLeftAttributeSet = 0;
+          load_integer(leftAttributeValue);
+        }
+      }
 
-    // assert: allocatedTemporaries == n + 2
+      rtype = gr_factor();
 
-    if (ltype != rtype)
-      typeWarning(ltype, rtype);
+      //delayed code generation
+      // if(attribute_flag){
+      //   load_integer(attribute_value);
+      //   attribute_flag = 0;
+      // }
+      //is left and right constant
+      if (isLeftAttributeSet){
+        if(attribute_flag){
+          attribute_flag = 0;
+          isleftAndRightConstant = 1;
+        }
+      }
 
-    if (operatorSymbol == SYM_ASTERISK) {
-      emitRFormat(OP_SPECIAL, previousTemporary(), currentTemporary(), 0, 0, FCT_MULTU);
-      emitRFormat(OP_SPECIAL, 0, 0, previousTemporary(), 0, FCT_MFLO);
+      if(isleftAndRightConstant){
+        folded = 1;
+        print((int*) "Folded.");
+        println();
 
-    } else if (operatorSymbol == SYM_DIV) {
-      emitRFormat(OP_SPECIAL, previousTemporary(), currentTemporary(), 0, 0, FCT_DIVU);
-      emitRFormat(OP_SPECIAL, 0, 0, previousTemporary(), 0, FCT_MFLO);
+        if (operatorSymbol == SYM_ASTERISK) {
+          leftAttributeValue = leftAttributeValue * attribute_value;
+        } else if (operatorSymbol == SYM_DIV) {
+          leftAttributeValue = leftAttributeValue / attribute_value;
+        } else if (operatorSymbol == SYM_MOD) {
+          leftAttributeValue = leftAttributeValue % attribute_value;
+        }
+        isLeftAttributeSet = 1;
+      } else {
+        // print((int*) "REGULAR.");
+        // println();
 
-    } else if (operatorSymbol == SYM_MOD) {
-      emitRFormat(OP_SPECIAL, previousTemporary(), currentTemporary(), 0, 0, FCT_DIVU);
-      emitRFormat(OP_SPECIAL, 0, 0, previousTemporary(), 0, FCT_MFHI);
+        // assert: allocatedTemporaries == n + 2
+        if(attribute_flag){
+          load_integer(attribute_value);
+          attribute_flag = 0;
+        }
+
+        if (ltype != rtype)
+          typeWarning(ltype, rtype);
+
+        if (operatorSymbol == SYM_ASTERISK) {
+          emitRFormat(OP_SPECIAL, previousTemporary(), currentTemporary(), 0, 0, FCT_MULTU);
+          emitRFormat(OP_SPECIAL, 0, 0, previousTemporary(), 0, FCT_MFLO);
+
+        } else if (operatorSymbol == SYM_DIV) {
+          emitRFormat(OP_SPECIAL, previousTemporary(), currentTemporary(), 0, 0, FCT_DIVU);
+          emitRFormat(OP_SPECIAL, 0, 0, previousTemporary(), 0, FCT_MFLO);
+
+        } else if (operatorSymbol == SYM_MOD) {
+          emitRFormat(OP_SPECIAL, previousTemporary(), currentTemporary(), 0, 0, FCT_DIVU);
+          emitRFormat(OP_SPECIAL, 0, 0, previousTemporary(), 0, FCT_MFHI);
+        }
+
+        tfree(1);
+      }
     }
-
-    tfree(1);
+    attribute_flag = 0;
+  if(isLeftAttributeSet == 1){
+    //print((int*) "Wrote laV.");
+    // println();
+    isLeftAttributeSet = 0;
+    //load_integer(leftAttributeValue);
+    attribute_flag = 1;
+    attribute_value = leftAttributeValue;
   }
 
+  // if(folded){
+  //   print((int*) "write Folded.");
+  //   println();
+  //   folded = 0;
+  //   load_integer(leftAttributeValue);
+  // }
   // assert: allocatedTemporaries == n + 1
 
   return ltype;
@@ -3301,6 +3403,13 @@ int gr_simpleExpression() {
   int ltype;
   int operatorSymbol;
   int rtype;
+  int leftAttribute;
+  int isLeftAttributeSet;
+  //code folding:
+  leftAttribute = 0;
+  isLeftAttributeSet = 0;
+
+
 
   // assert: n = allocatedTemporaries
 
@@ -3327,6 +3436,12 @@ int gr_simpleExpression() {
 
   ltype = gr_term();
 
+  //delayed code generation
+  if(attribute_flag){
+    load_integer(attribute_value);
+    attribute_flag = 0;
+  }
+
   // assert: allocatedTemporaries == n + 1
 
   if (sign) {
@@ -3346,6 +3461,12 @@ int gr_simpleExpression() {
     getSymbol();
 
     rtype = gr_term();
+
+    //delayed code generation
+    if(attribute_flag){
+      load_integer(attribute_value);
+      attribute_flag = 0;
+    }
 
     // assert: allocatedTemporaries == n + 2
 
@@ -3383,7 +3504,10 @@ int gr_shiftExpression(){
 
 
   ltype = gr_simpleExpression();
-
+  if(attribute_flag){
+    load_integer(attribute_value);
+    attribute_flag = 0;
+  }
   // assert: allocatedTemporaries == n + 1
 
 
@@ -3394,7 +3518,10 @@ int gr_shiftExpression(){
     getSymbol();
 
     rtype = gr_simpleExpression();
-
+    if(attribute_flag){
+      load_integer(attribute_value);
+      attribute_flag = 0;
+    }
     if (operatorSymbol == SYM_LSHIFT){
       emitRFormat(OP_SPECIAL, currentTemporary(), previousTemporary(), previousTemporary(), 0, FCT_SLLV);
       tfree(1);
@@ -7674,6 +7801,11 @@ void printUsage() {
 
 int selfie() {
   int* option;
+
+  int a;
+
+
+  int testfold;
   // int testAND1;
   // int testAND2;
   //
@@ -7685,8 +7817,10 @@ int selfie() {
   // int testmask;
   // int testlc;
   // int test;
+  a = 2;
   //
   //
+  testfold = 1*1*1*1*a*a*1*1*1*1+22;
   // testlc = loadCharacter("abc", 2);
   // test = 0xFFFFFF;
   //
@@ -7703,7 +7837,9 @@ int selfie() {
   // printBinary(testAND1, 32);
   // println();
   //
-  // printInteger(testAND1);
+  	 println();
+   printInteger(testfold);
+   	 println();
   // println();
   // printBinary(testAND1, 32);
   // println();
