@@ -3500,7 +3500,7 @@ int gr_simpleExpression() {
 
     getSymbol();
     if(sign){
-      leftAttributeValue = -1*leftAttributeValue;
+      leftAttributeValue = -leftAttributeValue;
       sign = 0;
     }
 
