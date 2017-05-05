@@ -48,7 +48,7 @@ C\* Grammar:
 
 ```
 cstar            = { type identifier [ "=" [ cast ] [ "-" ] literal ] ";" |
-                   ( "void" | type ) identifier procedure } .
+                   ( "void" | type ) identifier [selector] procedure } .
 
 type             = "int" [ "*" ] .
 
@@ -62,7 +62,7 @@ procedure        = "(" [ variable { "," variable } ] ")"
 variable         = type identifier .
 
 statement        = call ";" | while | if | return ";" |
-                   ( [ "*" ] identifier | "*" "(" expression ")" )
+                   ( [ "*" ] identifier [selector] | "*" "(" expression ")" )
                      "=" expression ";" .
 
 call             = identifier "(" [ expression { "," expression } ] ")" .
@@ -80,7 +80,7 @@ simpleExpression = [ "-" ] term { ( "+" | "-" ) term } .
 term             = factor { ( "*" | "/" | "%" ) factor } .
 
 factor           =  ["~"] [ cast ]
-                    ( [ "*" ] ( identifier | "(" expression ")" ) |
+                    ( [ "*" ] ( identifier [selector] | "(" expression ")" ) |
                       call |
                       literal |
                       string ) .
@@ -97,4 +97,5 @@ if               = "if" "(" expression ")"
                                "{" { statement } "}" ) ] .
 
 return           = "return" [ expression ] .
+selector         = { "[" simpleExpression "]" } .
 ```
