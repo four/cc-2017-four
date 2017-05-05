@@ -3520,12 +3520,12 @@ int gr_simpleExpression() {
     }
 
     //if left side is constant and right side is no constant load_integer left side
-    if(isLeftAttributeSet == 1){
-      if(symbol != SYM_INTEGER){
-        isLeftAttributeSet = 0;
-        load_integer(leftAttributeValue);
-      }
-    }
+    // if(isLeftAttributeSet == 1){
+    //   if(symbol != SYM_INTEGER){
+    //     isLeftAttributeSet = 0;
+    //     load_integer(leftAttributeValue);
+    //   }
+    // }
 
     rtype = gr_term();
 
@@ -3560,6 +3560,10 @@ int gr_simpleExpression() {
       isLeftAttributeSet = 1;
       isleftAndRightConstant = 0;
     }else{
+      if(isLeftAttributeSet){
+        load_integer(isLeftAttributeSet);
+        isLeftAttributeSet = 0;
+      }
       if(attribute_flag){
         load_integer(attribute_value);
         attribute_flag = 0;
