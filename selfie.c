@@ -2903,6 +2903,12 @@ void load_integer(int value) {
       println();
 
       value = ~(value);
+      print((int*) "After:");
+      println();
+
+      printInteger(value);
+      println();
+
       negativeValueLoaded = 1;
     }
 
@@ -3131,13 +3137,6 @@ int gr_factor() {
 
   int* variableOrProcedureName;
 
-
-  //code folding:
-  leftAttributeValue = 0;
-  isLeftAttributeSet = 0;
-  isleftAndRightConstant = 0;
-  folded = 0;
-
   // assert: n = allocatedTemporaries
 
   hasCast = 0;
@@ -3179,27 +3178,23 @@ int gr_factor() {
     // not a cast: "(" expression ")"
     } else {
       type = gr_expression();
-        if(attribute_flag){
-          load_integer(attribute_value);
-          attribute_flag = 0;
-        }
 
-        if (flipBits){
-          flipBits = 0;
-          emitRFormat(OP_SPECIAL, currentTemporary(), currentTemporary(), currentTemporary(), 0, FCT_NOR);
-        }
+      //attribute is forwarded before return.
+
       if (symbol == SYM_RPARENTHESIS)
         getSymbol();
       else
         syntaxErrorSymbol(SYM_RPARENTHESIS);
 
-      attribute_flag = 0;
-      if(isLeftAttributeSet == 1){
-        isLeftAttributeSet = 0;
-        attribute_flag = 1;
-        attribute_value = leftAttributeValue;
-      }
+
       // assert: allocatedTemporaries == n + 1
+      if(flipBits){
+        flipBits = 0;
+        if(attribute_flag){
+          attribute_value = ~(attribute_value);
+        }else{
+          emitRFormat(OP_SPECIAL, currentTemporary(), currentTemporary(), currentTemporary(), 0, FCT_NOR);        }
+      }
 
       return type;
     }
@@ -6747,29 +6742,113 @@ void fct_jr() {
 }
 
 void fct_and() {
+  if (debug) {
+    printFunction(function);
+    print((int*) " ");
+    printRegister(rt);
+    print((int*) ",");
+    printRegister(rs);
+    print((int*) ",");
+    printInteger(signExtend(immediate));
+    if (interpret) {
+      print((int*) ": ");
+      printRegister(rt);
+      print((int*) "=");
+      printInteger(*(registers+rt));
+      print((int*) ",");
+      printRegister(rs);
+      print((int*) "=");
+      printInteger(*(registers+rs));
+    }
+  }
   if (interpret) {
 
     *(registers+rd) = (*(registers+rt) & *(registers+rs));
 
     pc = pc + WORDSIZE;
   }
+  if (debug) {
+    if (interpret) {
+      print((int*) " -> ");
+      printRegister(rt);
+      print((int*) "=");
+      printInteger(*(registers+rt));
+    }
+    println();
+  }
 }
 
 void fct_or() {
+  if (debug) {
+    printFunction(function);
+    print((int*) " ");
+    printRegister(rt);
+    print((int*) ",");
+    printRegister(rs);
+    print((int*) ",");
+    printInteger(signExtend(immediate));
+    if (interpret) {
+      print((int*) ": ");
+      printRegister(rt);
+      print((int*) "=");
+      printInteger(*(registers+rt));
+      print((int*) ",");
+      printRegister(rs);
+      print((int*) "=");
+      printInteger(*(registers+rs));
+    }
+  }
   if (interpret) {
 
     *(registers+rd) = (*(registers+rt) | *(registers+rs));
 
     pc = pc + WORDSIZE;
   }
+  if (debug) {
+    if (interpret) {
+      print((int*) " -> ");
+      printRegister(rt);
+      print((int*) "=");
+      printInteger(*(registers+rt));
+    }
+    println();
+  }
 }
 
 void fct_nor() {
+  if (debug) {
+    printFunction(function);
+    print((int*) " ");
+    printRegister(rt);
+    print((int*) ",");
+    printRegister(rs);
+    print((int*) ",");
+    printInteger(signExtend(immediate));
+    if (interpret) {
+      print((int*) ": ");
+      printRegister(rt);
+      print((int*) "=");
+      printInteger(*(registers+rt));
+      print((int*) ",");
+      printRegister(rs);
+      print((int*) "=");
+      printInteger(*(registers+rs));
+    }
+  }
   if (interpret) {
 
     *(registers+rd) = ~(*(registers+rt) | *(registers+rs));
 
     pc = pc + WORDSIZE;
+  }
+  if (debug) {
+    if (interpret) {
+      print((int*) " -> ");
+      printRegister(rt);
+      print((int*) "=");
+      printInteger(*(registers+rt));
+    }
+    println();
   }
 }
 
@@ -6813,20 +6892,77 @@ void fct_syscall() {
 }
 
 void op_ori() {
+  if (debug) {
+    printOpcode(opcode);
+    print((int*) " ");
+    printRegister(rt);
+    print((int*) ",");
+    printRegister(rs);
+    print((int*) ",");
+    printInteger(signExtend(immediate));
+    if (interpret) {
+      print((int*) ": ");
+      printRegister(rt);
+      print((int*) "=");
+      printInteger(*(registers+rt));
+      print((int*) ",");
+      printRegister(rs);
+      print((int*) "=");
+      printInteger(*(registers+rs));
+    }
+  }
+
   if (interpret) {
     *(registers+rt) = *(registers+rs) | signExtend(immediate);
 
 
     pc = pc + WORDSIZE;
   }
+  if (debug) {
+    if (interpret) {
+      print((int*) " -> ");
+      printRegister(rt);
+      print((int*) "=");
+      printInteger(*(registers+rt));
+    }
+    println();
+  }
 }
 
 void op_andi() {
+  if (debug) {
+    printOpcode(opcode);
+    print((int*) " ");
+    printRegister(rt);
+    print((int*) ",");
+    printRegister(rs);
+    print((int*) ",");
+    printInteger(signExtend(immediate));
+    if (interpret) {
+      print((int*) ": ");
+      printRegister(rt);
+      print((int*) "=");
+      printInteger(*(registers+rt));
+      print((int*) ",");
+      printRegister(rs);
+      print((int*) "=");
+      printInteger(*(registers+rs));
+    }
+  }
   if (interpret) {
     *(registers+rt) = *(registers+rs) & signExtend(immediate);
 
 
     pc = pc + WORDSIZE;
+  }
+  if (debug) {
+    if (interpret) {
+      print((int*) " -> ");
+      printRegister(rt);
+      print((int*) "=");
+      printInteger(*(registers+rt));
+    }
+    println();
   }
 }
 
@@ -8054,6 +8190,7 @@ int selfie() {
   int* option;
 
   int a;
+  int b;
 
 
   int testfold;
@@ -8069,6 +8206,7 @@ int selfie() {
   // int testlc;
   // int test;
   a = 2;
+  b = 177;
   //
   //
   testfold = (-1)*a;
@@ -8091,6 +8229,15 @@ int selfie() {
   	 println();
    printInteger(testfold);
    	 println();
+
+     printBinary(b,32);
+     println();
+     b = ~(b);
+     printBinary(b,32);
+     println();
+     println();
+
+
   // println();
   // printBinary(testAND1, 32);
   // println();
