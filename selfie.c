@@ -2894,10 +2894,20 @@ void load_integer(int value) {
   int negativeValueLoaded;
   negativeValueLoaded = 0;
 
-  if(value < 0){
-    value = ~value;
-    negativeValueLoaded = 1;
-  }
+    if(value < 0){
+      println();
+      print((int*) "BEFORE:");
+      println();
+
+      printInteger(value);
+      println();
+
+      value = ~(value);
+      negativeValueLoaded = 1;
+    }
+
+
+
 
   talloc();
 
@@ -3048,6 +3058,10 @@ int gr_call(int* procedure) {
 
   if (isExpression()) {
     gr_expression();
+    if(attribute_flag){
+      load_integer(attribute_value);
+      attribute_flag = 0;
+    }
 
     // TODO: check if types/number of parameters is correct
 
@@ -3061,6 +3075,10 @@ int gr_call(int* procedure) {
       getSymbol();
 
       gr_expression();
+      if(attribute_flag){
+        load_integer(attribute_value);
+        attribute_flag = 0;
+      }
 
       // push more parameters onto stack
       emitIFormat(OP_ADDIU, REG_SP, REG_SP, -WORDSIZE);
@@ -3161,21 +3179,11 @@ int gr_factor() {
     // not a cast: "(" expression ")"
     } else {
       type = gr_expression();
-
-      if(flipBits == 0){
         if(attribute_flag){
-          //load_integer(attribute_value);
+          load_integer(attribute_value);
           attribute_flag = 0;
-          //save left side into local variable
-          isLeftAttributeSet = 1;
-          leftAttributeValue = attribute_value;
         }
-      }else{
-        if(attribute_flag){
-          isLeftAttributeSet = 0;
-          load_integer(leftAttributeValue);
-        }
-      }
+
         if (flipBits){
           flipBits = 0;
           emitRFormat(OP_SPECIAL, currentTemporary(), currentTemporary(), currentTemporary(), 0, FCT_NOR);
@@ -3212,6 +3220,10 @@ int gr_factor() {
       getSymbol();
 
       type = gr_expression();
+        if(attribute_flag){
+          load_integer(attribute_value);
+          attribute_flag = 0;
+        }
         if (flipBits){
           flipBits = 0;
           emitRFormat(OP_SPECIAL, currentTemporary(), currentTemporary(), currentTemporary(), 0, FCT_NOR);
@@ -3291,6 +3303,10 @@ int gr_factor() {
     getSymbol();
 
     type = gr_expression();
+    if(attribute_flag){
+      load_integer(attribute_value);
+      attribute_flag = 0;
+    }
 
     if (symbol == SYM_RPARENTHESIS)
       getSymbol();
@@ -3315,15 +3331,14 @@ int gr_term() {
   int ltype;
   int operatorSymbol;
   int rtype;
+  //code folding:
+
   int leftAttributeValue;
   int isLeftAttributeSet;
-  int isAttributeStored;
   int isleftAndRightConstant;
   int folded;
-  //code folding:
   leftAttributeValue = 0;
   isLeftAttributeSet = 0;
-  isAttributeStored = 0;
   isleftAndRightConstant = 0;
   folded = 0;
   // assert: n = allocatedTemporaries
@@ -3532,7 +3547,15 @@ int gr_simpleExpression() {
       } else if (operatorSymbol == SYM_MINUS) {
         leftAttributeValue = leftAttributeValue - attribute_value;
       }
+      print((int*) "Folded INT:.");
+      println();
       printInteger(leftAttributeValue);
+      println();
+      print((int*) "Folded BIN:.");
+      println();
+      printBinary(leftAttributeValue,32);
+      println();
+
 
       isLeftAttributeSet = 1;
       isleftAndRightConstant = 0;
@@ -3570,6 +3593,7 @@ if(isLeftAttributeSet == 1){
   //load_integer(leftAttributeValue);
   attribute_flag = 1;
   if(sign){
+    sign = 0;
     leftAttributeValue = -leftAttributeValue;
   }
   attribute_value = leftAttributeValue;
@@ -3584,20 +3608,36 @@ int gr_shiftExpression(){
   int operatorSymbol;
   int rtype;
 
+  //code folding:
+  int leftAttributeValue;
+  int isLeftAttributeSet;
+  int isleftAndRightConstant;
+  leftAttributeValue = 0;
+  isLeftAttributeSet = 0;
+
   // assert: n = allocatedTemporaries
 
 
   ltype = gr_simpleExpression();
-  if(attribute_flag){
-    load_integer(attribute_value);
-    attribute_flag = 0;
-  }
+
+    if(attribute_flag){
+      //load_integer(attribute_value);
+      attribute_flag = 0;
+      //save left side into local variable
+      isLeftAttributeSet = 1;
+      leftAttributeValue = attribute_value;
+    }
   // assert: allocatedTemporaries == n + 1
 
 
   // << or >>?
   while(isShift()) {
     operatorSymbol = symbol;
+
+    if(isLeftAttributeSet == 1){
+        isLeftAttributeSet = 0;
+        load_integer(leftAttributeValue);
+    }
 
     getSymbol();
 
@@ -3614,6 +3654,15 @@ int gr_shiftExpression(){
       tfree(1);
     }
   }
+  attribute_flag = 0;
+  if(isLeftAttributeSet == 1){
+    //print((int*) "Wrote laV.");
+    // println();
+    isLeftAttributeSet = 0;
+    //load_integer(leftAttributeValue);
+    attribute_flag = 1;
+    attribute_value = leftAttributeValue;
+  }
 
   return ltype;
 }
@@ -3622,10 +3671,23 @@ int gr_equalityExpression() {
   int ltype;
   int operatorSymbol;
   int rtype;
-
+  //code folding:
+  int leftAttributeValue;
+  int isLeftAttributeSet;
+  int isleftAndRightConstant;
+  leftAttributeValue = 0;
+  isLeftAttributeSet = 0;
   // assert: n = allocatedTemporaries
 
   ltype = gr_shiftExpression();
+
+  if(attribute_flag){
+    //load_integer(attribute_value);
+    attribute_flag = 0;
+    //save left side into local variable
+    isLeftAttributeSet = 1;
+    leftAttributeValue = attribute_value;
+  }
 
   // assert: allocatedTemporaries == n + 1
 
@@ -3635,7 +3697,17 @@ int gr_equalityExpression() {
 
     getSymbol();
 
+    if(isLeftAttributeSet == 1){
+        isLeftAttributeSet = 0;
+        load_integer(leftAttributeValue);
+    }
+
     rtype = gr_shiftExpression();
+
+    if(attribute_flag == 1){
+      attribute_flag = 0;
+      load_integer(attribute_value);
+    }
 
     // assert: allocatedTemporaries == n + 2
 
@@ -3700,6 +3772,15 @@ int gr_equalityExpression() {
     }
   }
 
+  attribute_flag = 0;
+  if(isLeftAttributeSet == 1){
+    //print((int*) "Wrote laV.");
+    // println();
+    isLeftAttributeSet = 0;
+    //load_integer(leftAttributeValue);
+    attribute_flag = 1;
+    attribute_value = leftAttributeValue;
+  }
   // assert: allocatedTemporaries == n + 1
 
   return ltype;
@@ -3708,18 +3789,37 @@ int gr_equalityExpression() {
 int gr_andExpression() {
   int ltype;
   int rtype;
+  //code folding:
+  int leftAttributeValue;
+  int isLeftAttributeSet;
+  int isleftAndRightConstant;
+  leftAttributeValue = 0;
+  isLeftAttributeSet = 0;
 
   // assert: n = allocatedTemporaries
 
   ltype = gr_equalityExpression();
 
+    if(attribute_flag){
+      //load_integer(attribute_value);
+      attribute_flag = 0;
+      //save left side into local variable
+      isLeftAttributeSet = 1;
+      leftAttributeValue = attribute_value;
+    }
   // assert: allocatedTemporaries == n + 1
 
   if (symbol == SYM_AND) {
     getSymbol();
-
+    if(isLeftAttributeSet == 1){
+        isLeftAttributeSet = 0;
+        load_integer(leftAttributeValue);
+    }
     rtype = gr_equalityExpression();
-
+    if(attribute_flag == 1){
+      attribute_flag = 0;
+      load_integer(attribute_value);
+    }
     // assert: allocatedTemporaries == n + 2
 
     if (ltype != rtype)
@@ -3731,6 +3831,15 @@ int gr_andExpression() {
   }
 
   // assert: allocatedTemporaries == n + 1
+  attribute_flag = 0;
+  if(isLeftAttributeSet == 1){
+    //print((int*) "Wrote laV.");
+    // println();
+    isLeftAttributeSet = 0;
+    //load_integer(leftAttributeValue);
+    attribute_flag = 1;
+    attribute_value = leftAttributeValue;
+  }
 
   return ltype;
 }
@@ -3738,17 +3847,39 @@ int gr_andExpression() {
 int gr_expression() {
   int ltype;
   int rtype;
+  //code folding:
+  int leftAttributeValue;
+  int isLeftAttributeSet;
+  int isleftAndRightConstant;
+  leftAttributeValue = 0;
+  isLeftAttributeSet = 0;
 
   // assert: n = allocatedTemporaries
 
   ltype = gr_andExpression();
 
+  if(attribute_flag){
+    //load_integer(attribute_value);
+    attribute_flag = 0;
+    //save left side into local variable
+    isLeftAttributeSet = 1;
+    leftAttributeValue = attribute_value;
+  }
+
   // assert: allocatedTemporaries == n + 1
 
   if (symbol == SYM_OR) {
     getSymbol();
+    if(isLeftAttributeSet == 1){
+        isLeftAttributeSet = 0;
+        load_integer(leftAttributeValue);
+    }
 
     rtype = gr_andExpression();
+    if(attribute_flag == 1){
+      attribute_flag = 0;
+      load_integer(attribute_value);
+    }
 
     // assert: allocatedTemporaries == n + 2
 
@@ -3761,7 +3892,15 @@ int gr_expression() {
   }
 
   // assert: allocatedTemporaries == n + 1
-
+  attribute_flag = 0;
+  if(isLeftAttributeSet == 1){
+    //print((int*) "Wrote laV.");
+    // println();
+    isLeftAttributeSet = 0;
+    //load_integer(leftAttributeValue);
+    attribute_flag = 1;
+    attribute_value = leftAttributeValue;
+  }
   return ltype;
 
 }
@@ -3784,6 +3923,10 @@ void gr_while() {
       getSymbol();
 
       gr_expression();
+      if(attribute_flag){
+        load_integer(attribute_value);
+        attribute_flag = 0;
+      }
 
       // do not know where to branch, fixup later
       brForwardToEnd = binaryLength;
@@ -3847,6 +3990,10 @@ void gr_if() {
       getSymbol();
 
       gr_expression();
+      if(attribute_flag){
+        load_integer(attribute_value);
+        attribute_flag = 0;
+      }
 
       // if the "if" case is not true, we branch to "else" (if provided)
       brForwardToElseOrEnd = binaryLength;
@@ -3937,6 +4084,10 @@ void gr_return() {
   // optional: expression
   if (symbol != SYM_SEMICOLON) {
     type = gr_expression();
+    if(attribute_flag){
+      load_integer(attribute_value);
+      attribute_flag = 0;
+    }
 
     if (type != returnType)
       typeWarning(returnType, type);
@@ -3996,6 +4147,10 @@ void gr_statement() {
         getSymbol();
 
         rtype = gr_expression();
+        if(attribute_flag){
+          load_integer(attribute_value);
+          attribute_flag = 0;
+        }
 
         if (rtype != INT_T)
           typeWarning(INT_T, rtype);
@@ -4021,6 +4176,10 @@ void gr_statement() {
       getSymbol();
 
       ltype = gr_expression();
+      if(attribute_flag){
+        load_integer(attribute_value);
+        attribute_flag = 0;
+      }
 
       if (ltype != INTSTAR_T)
         typeWarning(INTSTAR_T, ltype);
@@ -4033,6 +4192,10 @@ void gr_statement() {
           getSymbol();
 
           rtype = gr_expression();
+          if(attribute_flag){
+            load_integer(attribute_value);
+            attribute_flag = 0;
+          }
 
           if (rtype != INT_T)
             typeWarning(INT_T, rtype);
@@ -4087,6 +4250,10 @@ void gr_statement() {
       getSymbol();
 
       rtype = gr_expression();
+      if(attribute_flag){
+        load_integer(attribute_value);
+        attribute_flag = 0;
+      }
 
       if (ltype != rtype)
         typeWarning(ltype, rtype);
