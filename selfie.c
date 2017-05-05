@@ -3358,12 +3358,13 @@ int gr_term() {
       getSymbol();
 
       //if left side is constant and right side is no constant load_integer left side
-      if(isLeftAttributeSet == 1){
-        if(symbol != SYM_INTEGER){
-          isLeftAttributeSet = 0;
-          load_integer(leftAttributeValue);
-        }
-      }
+      //
+      // if(isLeftAttributeSet == 1){
+      //   if(symbol != SYM_INTEGER){
+      //     isLeftAttributeSet = 0;
+      //     load_integer(leftAttributeValue);
+      //   }
+      // }
 
       rtype = gr_factor();
 
@@ -3399,6 +3400,10 @@ int gr_term() {
         // println();
 
         // assert: allocatedTemporaries == n + 2
+        if(isLeftAttributeSet){
+          load_integer(leftAttributeValue);
+          isLeftAttributeSet = 0;
+        }
         if(attribute_flag){
           load_integer(attribute_value);
           attribute_flag = 0;
