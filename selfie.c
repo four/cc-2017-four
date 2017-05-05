@@ -2891,29 +2891,14 @@ int load_variable(int* variable) {
 
 void load_integer(int value) {
   // assert: value >= 0 or value == INT_MIN
+  // nope - can also load negatives now!
   int negativeValueLoaded;
   negativeValueLoaded = 0;
 
     if(value < 0){
-      println();
-      print((int*) "BEFORE:");
-      println();
-
-      printInteger(value);
-      println();
-
       value = ~(value);
-      print((int*) "After:");
-      println();
-
-      printInteger(value);
-      println();
-
       negativeValueLoaded = 1;
     }
-
-
-
 
   talloc();
 
@@ -3296,12 +3281,19 @@ int gr_factor() {
   //  "(" expression ")"
   } else if (symbol == SYM_LPARENTHESIS) {
     getSymbol();
-
-    type = gr_expression();
-    if(attribute_flag){
-      load_integer(attribute_value);
-      attribute_flag = 0;
+    if(flipBits){
+      flipBits = 0;
+      if(attribute_flag){
+        attribute_value = ~(attribute_value);
+      }else{
+        emitRFormat(OP_SPECIAL, currentTemporary(), currentTemporary(), currentTemporary(), 0, FCT_NOR);        }
     }
+
+    // type = gr_expression();
+    // if(attribute_flag){
+    //   load_integer(attribute_value);
+    //   attribute_flag = 0;
+    // }
 
     if (symbol == SYM_RPARENTHESIS)
       getSymbol();
@@ -3383,8 +3375,6 @@ int gr_term() {
 
       if(isleftAndRightConstant){
         folded = 1;
-        print((int*) "Folded.");
-        println();
 
         if (operatorSymbol == SYM_ASTERISK) {
           leftAttributeValue = leftAttributeValue * attribute_value;
@@ -3396,9 +3386,6 @@ int gr_term() {
         isLeftAttributeSet = 1;
         isleftAndRightConstant = 0;
       } else {
-        // print((int*) "REGULAR.");
-        // println();
-
         // assert: allocatedTemporaries == n + 2
         if(isLeftAttributeSet){
           load_integer(leftAttributeValue);
@@ -3428,23 +3415,13 @@ int gr_term() {
         tfree(1);
       }
     }
-    attribute_flag = 0;
-  if(isLeftAttributeSet == 1){
-    //print((int*) "Wrote laV.");
-    // println();
-    isLeftAttributeSet = 0;
-    //load_integer(leftAttributeValue);
-    attribute_flag = 1;
-    attribute_value = leftAttributeValue;
-  }
 
-  // if(folded){
-  //   print((int*) "write Folded.");
-  //   println();
-  //   folded = 0;
-  //   load_integer(leftAttributeValue);
-  // }
-  // assert: allocatedTemporaries == n + 1
+    attribute_flag = 0;
+    if(isLeftAttributeSet == 1){
+      isLeftAttributeSet = 0;
+      attribute_flag = 1;
+      attribute_value = leftAttributeValue;
+    }
 
   return ltype;
 }
@@ -3490,9 +3467,7 @@ int gr_simpleExpression() {
   ltype = gr_term();
 
   if(attribute_flag){
-    //load_integer(attribute_value);
     attribute_flag = 0;
-    //save left side into local variable
     isLeftAttributeSet = 1;
     leftAttributeValue = attribute_value;
   }
@@ -3519,14 +3494,6 @@ int gr_simpleExpression() {
       sign = 0;
     }
 
-    //if left side is constant and right side is no constant load_integer left side
-    // if(isLeftAttributeSet == 1){
-    //   if(symbol != SYM_INTEGER){
-    //     isLeftAttributeSet = 0;
-    //     load_integer(leftAttributeValue);
-    //   }
-    // }
-
     rtype = gr_term();
 
     if (isLeftAttributeSet){
@@ -3539,23 +3506,12 @@ int gr_simpleExpression() {
 
     if(isleftAndRightConstant){
       folded = 1;
-      print((int*) "Folded PLUSMINUS.");
-      println();
 
       if (operatorSymbol == SYM_PLUS) {
         leftAttributeValue = leftAttributeValue + attribute_value;
       } else if (operatorSymbol == SYM_MINUS) {
         leftAttributeValue = leftAttributeValue - attribute_value;
       }
-      print((int*) "Folded INT:.");
-      println();
-      printInteger(leftAttributeValue);
-      println();
-      print((int*) "Folded BIN:.");
-      println();
-      printBinary(leftAttributeValue,32);
-      println();
-
 
       isLeftAttributeSet = 1;
       isleftAndRightConstant = 0;
@@ -3591,10 +3547,7 @@ int gr_simpleExpression() {
   }
   attribute_flag = 0;
 if(isLeftAttributeSet == 1){
-  //print((int*) "Wrote laV.");
-  // println();
   isLeftAttributeSet = 0;
-  //load_integer(leftAttributeValue);
   attribute_flag = 1;
   if(sign){
     sign = 0;
@@ -3625,9 +3578,7 @@ int gr_shiftExpression(){
   ltype = gr_simpleExpression();
 
     if(attribute_flag){
-      //load_integer(attribute_value);
       attribute_flag = 0;
-      //save left side into local variable
       isLeftAttributeSet = 1;
       leftAttributeValue = attribute_value;
     }
@@ -3660,10 +3611,7 @@ int gr_shiftExpression(){
   }
   attribute_flag = 0;
   if(isLeftAttributeSet == 1){
-    //print((int*) "Wrote laV.");
-    // println();
     isLeftAttributeSet = 0;
-    //load_integer(leftAttributeValue);
     attribute_flag = 1;
     attribute_value = leftAttributeValue;
   }
@@ -3686,9 +3634,7 @@ int gr_equalityExpression() {
   ltype = gr_shiftExpression();
 
   if(attribute_flag){
-    //load_integer(attribute_value);
     attribute_flag = 0;
-    //save left side into local variable
     isLeftAttributeSet = 1;
     leftAttributeValue = attribute_value;
   }
@@ -3778,10 +3724,7 @@ int gr_equalityExpression() {
 
   attribute_flag = 0;
   if(isLeftAttributeSet == 1){
-    //print((int*) "Wrote laV.");
-    // println();
     isLeftAttributeSet = 0;
-    //load_integer(leftAttributeValue);
     attribute_flag = 1;
     attribute_value = leftAttributeValue;
   }
@@ -3805,9 +3748,7 @@ int gr_andExpression() {
   ltype = gr_equalityExpression();
 
     if(attribute_flag){
-      //load_integer(attribute_value);
       attribute_flag = 0;
-      //save left side into local variable
       isLeftAttributeSet = 1;
       leftAttributeValue = attribute_value;
     }
@@ -3828,7 +3769,6 @@ int gr_andExpression() {
 
     if (ltype != rtype)
       typeWarning(ltype, rtype);
-      //TODOMINO implement immediate
     emitRFormat(OP_SPECIAL, currentTemporary(), previousTemporary(), previousTemporary(), 0, FCT_AND);
     tfree(1);
 
@@ -3837,10 +3777,7 @@ int gr_andExpression() {
   // assert: allocatedTemporaries == n + 1
   attribute_flag = 0;
   if(isLeftAttributeSet == 1){
-    //print((int*) "Wrote laV.");
-    // println();
     isLeftAttributeSet = 0;
-    //load_integer(leftAttributeValue);
     attribute_flag = 1;
     attribute_value = leftAttributeValue;
   }
@@ -3863,9 +3800,7 @@ int gr_expression() {
   ltype = gr_andExpression();
 
   if(attribute_flag){
-    //load_integer(attribute_value);
     attribute_flag = 0;
-    //save left side into local variable
     isLeftAttributeSet = 1;
     leftAttributeValue = attribute_value;
   }
@@ -3898,10 +3833,7 @@ int gr_expression() {
   // assert: allocatedTemporaries == n + 1
   attribute_flag = 0;
   if(isLeftAttributeSet == 1){
-    //print((int*) "Wrote laV.");
-    // println();
     isLeftAttributeSet = 0;
-    //load_integer(leftAttributeValue);
     attribute_flag = 1;
     attribute_value = leftAttributeValue;
   }
@@ -4951,7 +4883,7 @@ int encodeJFormat(int opcode, int instr_index) {
 // -----------------------------------------------------------------
 
 int getOpcode(int instruction) {
-  return rightShift(instruction, 26);
+  return rightShift(instruction, 32-(3+3));
 }
 
 int getRS(int instruction) {
@@ -4968,7 +4900,7 @@ int getRD(int instruction) {
 }
 
 int getShamt(int instruction){
-  return rightShift((instruction & 0x7FF), 6);
+  return rightShift((instruction & 0x7FF), 32-(3+3));
 }
 
 int getFunction(int instruction) {
@@ -8218,7 +8150,7 @@ int selfie() {
   b = 177;
   //
   //
-  testfold = (-1)*a;
+  // testfold = 2+2+2+(1+3+3)+2+(-1)*a;
   // testlc = loadCharacter("abc", 2);
   // test = 0xFFFFFF;
   //
@@ -8230,21 +8162,24 @@ int selfie() {
   // testOR1  = 5 | 3;
   //
   //
+  println();
 	 print((int*) "This is Michael Noppinger's Selfie");
 	 println();
   // printBinary(testAND1, 32);
   // println();
+  // //
+  // print((int*) "This THE VALUE:");
   //
-  	 println();
-   printInteger(testfold);
-   	 println();
-
-     printBinary(b,32);
-     println();
-     b = ~(b);
-     printBinary(b,32);
-     println();
-     println();
+  // 	 println();
+  //  printInteger(testfold);
+  //  	 println();
+  //
+  //    printBinary(b,32);
+  //    println();
+  //    b = ~(b);
+  //    printBinary(b,32);
+  //    println();
+  //    println();
 
 
   // println();
