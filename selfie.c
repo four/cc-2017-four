@@ -328,6 +328,8 @@ int SYM_RSHIFT       = 29; // >>
 int SYM_OR           = 30; // |
 int SYM_AND          = 31; // &
 int SYM_NOT          = 32; // ~
+int SYM_LBRACKET     = 33; // [
+int SYM_RBRACKET     = 34; // ]
 
 
 
@@ -2891,7 +2893,7 @@ int load_variable(int* variable) {
 
 void load_integer(int value) {
   // assert: value >= 0 or value == INT_MIN
-  // nope - can also load negatives now!
+  // nope, can also load negatives now!
   int negativeValueLoaded;
   negativeValueLoaded = 0;
 
@@ -3289,11 +3291,11 @@ int gr_factor() {
         emitRFormat(OP_SPECIAL, currentTemporary(), currentTemporary(), currentTemporary(), 0, FCT_NOR);        }
     }
 
-    // type = gr_expression();
-    // if(attribute_flag){
-    //   load_integer(attribute_value);
-    //   attribute_flag = 0;
-    // }
+    type = gr_expression();
+    if(attribute_flag){
+      load_integer(attribute_value);
+      attribute_flag = 0;
+    }
 
     if (symbol == SYM_RPARENTHESIS)
       getSymbol();
@@ -3512,6 +3514,11 @@ int gr_simpleExpression() {
       } else if (operatorSymbol == SYM_MINUS) {
         leftAttributeValue = leftAttributeValue - attribute_value;
       }
+      // println();
+      // print((int*) "Fold + or -:");
+      // println();
+      // printInteger(leftAttributeValue);
+      // println();
 
       isLeftAttributeSet = 1;
       isleftAndRightConstant = 0;
@@ -4046,6 +4053,10 @@ void gr_return() {
   // assert: allocatedTemporaries == 0
 
   numberOfReturn = numberOfReturn + 1;
+}
+
+void gr_selector() {
+  //TODO MINO
 }
 
 void gr_statement() {
