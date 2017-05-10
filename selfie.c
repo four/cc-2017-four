@@ -343,7 +343,7 @@ int maxIntegerLength    = 32; // maximum number of characters in an integer
 int maxStringLength     = 128; // maximum number of characters in a string
 
 // ------------------------ GLOBAL VARIABLES -----------------------
-//int ass[1];
+int ass[1];
 int lineNumber = 1; // current line number for error reporting
 
 int* identifier = (int*) 0; // stores scanned identifier as string
@@ -4521,6 +4521,9 @@ void gr_cstar() {
   int currentLineNumber;
   int initialValue;
   int* entry;
+  int arraySize;
+
+  arraySize = 1;
 
   while (symbol != SYM_EOF) {
     while (lookForType()) {
@@ -4556,10 +4559,28 @@ void gr_cstar() {
 
         getSymbol();
         if (symbol == SYM_LBRACKET){
-          print((int*) " LBRACKET FOUND");
-          println();
-        }
-        if (symbol == SYM_LPARENTHESIS)
+          getSymbol();
+          gr_expression();
+          if(attribute_flag){
+            arraySize = arraySize * attribute_value;
+            attribute_flag = 0;
+          }else{
+            println();
+            print((int*) "Error: Literal expected.");
+            println();
+          }
+          if(symbol == SYM_RBRACKET){
+            getSymbol();
+          } else {
+            syntaxErrorSymbol(SYM_RBRACKET);
+          }
+          if(symbol == SYM_SEMICOLON){
+            getSymbol();
+          } else {
+            syntaxErrorSymbol(SYM_SEMICOLON);
+          }
+
+        }else if (symbol == SYM_LPARENTHESIS)
           // type identifier "(" ...
           // procedure declaration or definition
           gr_procedure(variableOrProcedureName, type);
