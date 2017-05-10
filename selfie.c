@@ -4579,7 +4579,7 @@ void gr_cstar() {
           } else {
             syntaxErrorSymbol(SYM_SEMICOLON);
           }
-
+          allocatedMemory = allocatedMemory + arraySize * 4;
         }else if (symbol == SYM_LPARENTHESIS)
           // type identifier "(" ...
           // procedure declaration or definition
