@@ -4580,6 +4580,8 @@ void gr_cstar() {
             syntaxErrorSymbol(SYM_SEMICOLON);
           }
           allocatedMemory = allocatedMemory + arraySize * 4;
+          createSymbolTableEntry(GLOBAL_TABLE, variableOrProcedureName, currentLineNumber, VARIABLE, type, initialValue, -allocatedMemory);
+
         }else if (symbol == SYM_LPARENTHESIS)
           // type identifier "(" ...
           // procedure declaration or definition
