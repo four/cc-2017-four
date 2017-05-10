@@ -4555,9 +4555,11 @@ void gr_cstar() {
   int initialValue;
   int* entry;
   int arraySize;
-  println();
+  int* arrayDimensionsLinkedList;
+
 
   arraySize = 1;
+  arrayDimensionsLinkedList = (int*) 0;
 
   while (symbol != SYM_EOF) {
     while (lookForType()) {
@@ -4599,6 +4601,7 @@ void gr_cstar() {
             if(attribute_flag){
               arraySize = arraySize * attribute_value;
               attribute_flag = 0;
+              createArrayListEntry(arrayDimensionsLinkedList, attribute_value);
             }else{
               println();
               print((int*) "Error: Literal expected.");
