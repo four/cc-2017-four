@@ -159,6 +159,8 @@ int CHAR_DOUBLEQUOTE  = '"';
 int CHAR_OR           = '|';
 int CHAR_AND          = '&';
 int CHAR_NOT          = '~';
+int CHAR_LBRACKET     = '[';
+int CHAR_RBRACKET     = ']';
 
 int SIZEOFINT     = 4; // must be the same as WORDSIZE
 int SIZEOFINTSTAR = 4; // must be the same as WORDSIZE
@@ -341,7 +343,7 @@ int maxIntegerLength    = 32; // maximum number of characters in an integer
 int maxStringLength     = 128; // maximum number of characters in a string
 
 // ------------------------ GLOBAL VARIABLES -----------------------
-
+//int ass[1];
 int lineNumber = 1; // current line number for error reporting
 
 int* identifier = (int*) 0; // stores scanned identifier as string
@@ -369,7 +371,7 @@ int  sourceFD   = 0;        // file descriptor of open source file
 // ------------------------- INITIALIZATION ------------------------
 
 void initScanner () {
-  SYMBOLS = malloc(34 * SIZEOFINTSTAR);
+  SYMBOLS = malloc(36 * SIZEOFINTSTAR);
 
   *(SYMBOLS + SYM_IDENTIFIER)   = (int) "identifier";
   *(SYMBOLS + SYM_INTEGER)      = (int) "integer";
@@ -404,6 +406,8 @@ void initScanner () {
   *(SYMBOLS + SYM_OR)           = (int) "|";
   *(SYMBOLS + SYM_AND)          = (int) "&";
   *(SYMBOLS + SYM_NOT)          = (int) "~";
+  *(SYMBOLS + SYM_LBRACKET)     = (int) "[";
+  *(SYMBOLS + SYM_RBRACKET)     = (int) "]";
 
   character = CHAR_EOF;
   symbol    = SYM_EOF;
@@ -2466,6 +2470,16 @@ void getSymbol() {
         getCharacter();
 
         symbol = SYM_NOT;
+
+      } else if (character == CHAR_LBRACKET) {
+        getCharacter();
+
+        symbol = SYM_LBRACKET;
+
+      } else if (character == CHAR_RBRACKET) {
+        getCharacter();
+
+        symbol = SYM_RBRACKET;
 
       } else {
         printLineNumber((int*) "error", lineNumber);
@@ -4541,7 +4555,10 @@ void gr_cstar() {
         variableOrProcedureName = identifier;
 
         getSymbol();
-
+        if (symbol == SYM_LBRACKET){
+          print((int*) " LBRACKET FOUND");
+          println();
+        }
         if (symbol == SYM_LPARENTHESIS)
           // type identifier "(" ...
           // procedure declaration or definition
