@@ -1,8 +1,10 @@
 # Compiler flags
 CFLAGS := -w -O3 -fno-strict-overflow -m32 -D'main(a,b)=main(a,char**argv)'
+
 # Compile selfie.c into selfie executable
 selfie: selfie.c
 	$(CC) $(CFLAGS) $< -o $@
+
 # Consider these targets as targets, not files
 .PHONY : test clean
 
