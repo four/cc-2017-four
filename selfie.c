@@ -343,7 +343,7 @@ int maxIntegerLength    = 32; // maximum number of characters in an integer
 int maxStringLength     = 128; // maximum number of characters in a string
 
 // ------------------------ GLOBAL VARIABLES -----------------------
-int ass[1];
+int ass[9];
 int lineNumber = 1; // current line number for error reporting
 
 int* identifier = (int*) 0; // stores scanned identifier as string
