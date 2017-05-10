@@ -333,7 +333,7 @@ int SYM_NOT          = 32; // ~
 int SYM_LBRACKET     = 33; // [
 int SYM_RBRACKET     = 34; // ]
 
-int arr[10];
+int arr[10][2][4][2];
 
 int* SYMBOLS; // strings representing symbols
 
