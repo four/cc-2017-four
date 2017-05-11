@@ -332,6 +332,7 @@ int SYM_AND          = 31; // &
 int SYM_NOT          = 32; // ~
 int SYM_LBRACKET     = 33; // [
 int SYM_RBRACKET     = 34; // ]
+int SYM_STRUCT       = 35; // struct
 
 int arr[10][2][4][2];
 
@@ -370,7 +371,7 @@ int  sourceFD   = 0;        // file descriptor of open source file
 // ------------------------- INITIALIZATION ------------------------
 
 void initScanner () {
-  SYMBOLS = malloc(36 * SIZEOFINTSTAR);
+  SYMBOLS = malloc(37 * SIZEOFINTSTAR);
 
   *(SYMBOLS + SYM_IDENTIFIER)   = (int) "identifier";
   *(SYMBOLS + SYM_INTEGER)      = (int) "integer";
@@ -407,6 +408,7 @@ void initScanner () {
   *(SYMBOLS + SYM_NOT)          = (int) "~";
   *(SYMBOLS + SYM_LBRACKET)     = (int) "[";
   *(SYMBOLS + SYM_RBRACKET)     = (int) "]";
+  *(SYMBOLS + SYM_STRUCT)       = (int) "struct";
 
   character = CHAR_EOF;
   symbol    = SYM_EOF;
@@ -453,6 +455,17 @@ int reportUndefinedProcedures();
 // |  8 | arraySize                 | Size of Array
 // |  9 | arrayDimensionsLinkedList |
 // +----+---------------------------+
+
+struct symbol_table_t {
+  struct symbol_table_t * next;
+  int* string;
+  int line;
+  int class;
+  struct type_t * type;
+  int value;
+  int address;
+  int scope;
+};
 
 int* getNextEntry(int* entry)       { return (int*) *entry; }
 int* getString(int* entry)          { return (int*) *(entry + 1); }
@@ -2236,9 +2249,12 @@ int identifierOrKeyword() {
     return SYM_RETURN;
   if (identifierStringMatch(SYM_VOID))
     return SYM_VOID;
+  if (identifierStringMatch(SYM_STRUCT))
+    return SYM_STRUCT;
   else
     return SYM_IDENTIFIER;
 }
+
 
 void getSymbol() {
   int i;
@@ -2273,6 +2289,7 @@ void getSymbol() {
         storeCharacter(identifier, i, 0); // null-terminated string
 
         symbol = identifierOrKeyword();
+
 
       } else if (isCharacterDigit()) {
         // accommodate integer and null for termination
@@ -2787,6 +2804,8 @@ int lookForType() {
     return 0;
   else if (symbol == SYM_EOF)
     return 0;
+  else if (symbol == SYM_STRUCT)
+    return 0;
   else
     return 1;
 }
@@ -3189,6 +3208,8 @@ int gr_factor() {
 
   while (lookForFactor()) {
     syntaxErrorUnexpected();
+    print((int*) "--1--");
+
 
     if (symbol == SYM_EOF)
       exit(-1);
@@ -3263,8 +3284,11 @@ int gr_factor() {
         getSymbol();
       else
         syntaxErrorSymbol(SYM_RPARENTHESIS);
-    } else
+    } else{
       syntaxErrorUnexpected();
+      print((int*) "--2--");
+
+    }
 
     if (type != INTSTAR_T)
       typeWarning(INTSTAR_T, type);
@@ -3350,9 +3374,11 @@ int gr_factor() {
       getSymbol();
     else
       syntaxErrorSymbol(SYM_RPARENTHESIS);
-  } else
+  } else{
     syntaxErrorUnexpected();
+    print((int*) "--3--");
 
+  }
   // assert: allocatedTemporaries == n + 1
   if (flipBits){
     emitRFormat(OP_SPECIAL, currentTemporary(), currentTemporary(), currentTemporary(), 0, FCT_NOR);
@@ -4171,6 +4197,8 @@ void gr_statement() {
 
   while (lookForStatement()) {
     syntaxErrorUnexpected();
+    print((int*) "--4--");
+
 
     if (symbol == SYM_EOF)
       exit(-1);
@@ -4320,8 +4348,11 @@ void gr_statement() {
         getSymbol();
       else
         syntaxErrorSymbol(SYM_SEMICOLON);
-    } else
+    } else{
       syntaxErrorUnexpected();
+      print((int*) "--1--");
+
+    }
   }
   // while statement?
   else if (symbol == SYM_WHILE) {
@@ -4433,8 +4464,11 @@ int gr_initialization(int type) {
 
       if (sign)
         initialValue = -initialValue;
-    } else
+    } else{
       syntaxErrorUnexpected();
+      print((int*) "--5--");
+
+    }
 
     if (symbol == SYM_SEMICOLON)
       getSymbol();
@@ -4601,8 +4635,11 @@ void gr_procedure(int* procedure, int type) {
 
     help_procedure_epilogue(numberOfParameters);
 
-  } else
+  } else{
     syntaxErrorUnexpected();
+    print((int*) "--6--");
+
+  }
 
   local_symbol_table = (int*) 0;
 
@@ -4637,11 +4674,16 @@ void gr_cstar() {
   while (symbol != SYM_EOF) {
     while (lookForType()) {
       syntaxErrorUnexpected();
+      print((int*) "--7--");
+
 
       if (symbol == SYM_EOF)
         exit(-1);
       else
         getSymbol();
+    }
+    if (symbol == SYM_STRUCT) {
+      getSymbol();
     }
 
     if (symbol == SYM_VOID) {
