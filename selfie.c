@@ -4105,7 +4105,60 @@ void gr_return() {
 }
 
 void gr_selector() {
-  //TODO MINO
+  int* entry;
+  int dim;
+  int dimSize;
+
+  dimSize = 1;
+  dim = 0;
+
+  entry = getVariable(identifier);
+
+  if(symbol == SYM_LBRACKET){
+    getSymbol();
+    dim = dim+1;
+
+    if(getAddress(entry) > 0){
+
+      load_variable(identifier);
+      gr_expression();
+
+      if(attribute_flag){
+        attribute_flag = 0;
+        load_integer(attribute_value);
+      }
+      //multiply dimension 1 by 4 = WORDSIZE
+      emitLeftShiftBy(2);
+      if(symbol == SYM_RBRACKET){
+        getSymbol();
+      }
+      if (symbol == SYM_LBRACKET){
+        getSymbol();
+        talloc();
+        emitIFormat(OP_ADDIU, REG_ZR, currentTemporary(), getDim2Size(entry));
+        emitRFormat(OP_SPECIAL, currentTemporary(), previousTemporary(), 0, FCT_MULTU,0);
+        emitRFormat(OP_SPECIAL, 0, 0, previousTemporary(), FCT_MFLO,0);
+        tfree(1);
+
+        gr_expression();
+        if(attribute_flag){
+          attribute_flag = 0;
+          load_integer(attribute_value);
+        }
+        if(symbol == SYM_RBRACKET){
+          getSymbol();
+        }
+        emitLeftShiftBy(2);
+        emitRFormat(OP_SPECIAL, previousTemporary(), currentTemporary(), previousTemporary(), FCT_ADDU,0);
+        tfree(1);
+      }
+      emitRFormat(OP_SPECIAL, previousTemporary(), currentTemporary(), previousTemporary(), FCT_ADDU,0);
+      tfree(1);
+
+
+
+    }
+  }
 }
 
 void gr_statement() {
@@ -4566,6 +4619,15 @@ void gr_cstar() {
   //int* arrayDimensionsLinkedList;
   int testValue;
   int* arrayDimensionsLinkedList;
+
+  int dim;
+  int dim1;
+  int dim2;
+
+  dim  = 0;
+  dim1 = 1;
+  dim2 = 1;
+
   arrayDimensionsLinkedList= (int*) 0;
   testValue = 0;
 
@@ -4607,13 +4669,17 @@ void gr_cstar() {
         getSymbol();
         if (symbol == SYM_LBRACKET){
           while(symbol == SYM_LBRACKET){
+            dim = dim + 1;
             getSymbol();
             gr_expression();
             if(attribute_flag){
               arraySize = arraySize * attribute_value;
               attribute_flag = 0;
               createArrayListEntry(arrayDimensionsLinkedList, attribute_value);
-
+              if(dim == 1)
+                dim1 = attribute_value;
+              else if(dim == 2)
+                dim2 = attribute_value;
             }else{
               println();
               print((int*) "Error: Literal expected.");
@@ -4643,7 +4709,7 @@ void gr_cstar() {
           }
           //TODOMINO ARRAYLIST
           allocatedMemory = allocatedMemory+(arraySize*WORDSIZE);
-          createSymbolTableEntry(GLOBAL_TABLE, variableOrProcedureName, currentLineNumber, VARIABLE, type, 0, -allocatedMemory,arraySize,1,1);
+          createSymbolTableEntry(GLOBAL_TABLE, variableOrProcedureName, currentLineNumber, VARIABLE, type, 0, -allocatedMemory,arraySize,dim1,dim2);
           arraySize = 0;
 
         }else if (symbol == SYM_LPARENTHESIS)
