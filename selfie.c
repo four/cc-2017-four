@@ -466,6 +466,23 @@ struct symbol_table_t {
   int address;
   int scope;
 };
+struct type_t {
+  int type;
+  struct dimension_t * dimensions;
+  struct field_t * fields;
+};
+
+struct dimension_t {
+  struct dimension_t * next;
+  int size;
+};
+
+struct field_t {
+  struct field_t * next;
+  int* name;
+  struct type_t * type;
+  int offset;
+};
 
 int* getNextEntry(int* entry)       { return (int*) *entry; }
 int* getString(int* entry)          { return (int*) *(entry + 1); }
@@ -494,6 +511,7 @@ void setArrayDim1Size(int* entry, int dim1)   { *(entry + 10)= dim1; }
 void setArrayDim2Size(int* entry, int dim2)   { *(entry + 10)= dim2; }
 
 
+
 // array list entry:
 // +----+---------------------------+
 // |  0 | next                      | pointer to next entry
@@ -505,6 +523,8 @@ int getArrayDimensionSize(int* entry)   { return        *(entry + 1); }
 
 void setNextArrayListEntry(int* entry, int* next) { *entry      = (int) next;}
 void setArrayDimensionSize(int* entry, int size)  { *(entry + 1) = size;}
+
+//
 
 
 // ------------------------ GLOBAL CONSTANTS -----------------------
@@ -561,6 +581,7 @@ int isStarOrDivOrModulo();
 int isPlusOrMinus();
 int isComparison();
 int isShift();
+
 
 int lookForFactor();
 int lookForStatement();
@@ -2564,6 +2585,7 @@ void createSymbolTableEntry(int whichTable, int* string, int line, int class, in
   setArrayDim2Size(newEntry, dim2Size);
 
 
+
   // create entry at head of symbol table
   if (whichTable == GLOBAL_TABLE) {
     setScope(newEntry, REG_GP);
@@ -2701,6 +2723,15 @@ int isExpression() {
   else if (symbol == SYM_STRING)
     return 1;
   else if (symbol == SYM_CHARACTER)
+    return 1;
+  else
+    return 0;
+}
+
+int isIntOrStruct() {
+  if (symbol == SYM_INT)
+    return 1;
+  else if (symbol == SYM_STRUCT)
     return 1;
   else
     return 0;
@@ -4684,9 +4715,54 @@ void gr_cstar() {
     }
     if (symbol == SYM_STRUCT) {
       getSymbol();
-    }
+      if (symbol == SYM_IDENTIFIER) {
 
-    if (symbol == SYM_VOID) {
+        variableOrProcedureName = identifier;
+
+        getSymbol();
+        //gr_procedure(variableOrProcedureName, type);
+
+        //Enter struct
+        if (symbol == SYM_LBRACE)
+          getSymbol();
+        else
+          syntaxErrorSymbol(SYM_LBRACE);
+
+        while (isIntOrStruct()){
+          getSymbol();
+          if(symbol == SYM_IDENTIFIER){
+          getSymbol();}
+
+          //dereference
+          if(symbol == SYM_ASTERISK){
+            getSymbol();
+          }
+          if(symbol == SYM_IDENTIFIER){
+            getSymbol();
+          }
+          if(symbol == SYM_SEMICOLON){
+            getSymbol();
+          } else {
+            syntaxErrorSymbol(SYM_SEMICOLON);
+          }
+
+
+        }
+        if(symbol == SYM_RBRACE){
+          getSymbol();
+        } else
+          syntaxErrorSymbol(SYM_RBRACE);
+
+        if(symbol == SYM_SEMICOLON)
+          getSymbol();
+        else
+          syntaxErrorSymbol(SYM_SEMICOLON);
+
+      } else
+        syntaxErrorSymbol(SYM_IDENTIFIER);
+
+
+    } else if (symbol == SYM_VOID) {
       // void identifier ...
       // procedure declaration or definition
       type = VOID_T;
@@ -4739,12 +4815,7 @@ void gr_cstar() {
         } else {
           syntaxErrorSymbol(SYM_SEMICOLON);
         }
-          println();
-          print((int*) "allocatedMemory: "); printInteger(allocatedMemory);
-          println();
-          println();
-          print((int*) "arraySize: "); printInteger(arraySize);
-          println();
+
           if(arrayDimensionsLinkedList){
             testValue = getArrayDimensionSize(arrayDimensionsLinkedList);
             print((int*) "LinkedList test: ");  printInteger(testValue);
